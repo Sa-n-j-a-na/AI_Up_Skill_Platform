@@ -2,7 +2,7 @@
 import streamlit as st
 import requests
 
-BACKEND_URL = st.secrets.get("BACKEND_URL", "http://localhost:8000")
+BACKEND_URL = "http://localhost:8000"
 
 st.set_page_config(page_title="SkillGap MVP", layout="centered")
 

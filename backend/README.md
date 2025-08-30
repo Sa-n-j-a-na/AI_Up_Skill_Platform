@@ -1,8 +1,9 @@
 # Backend (FastAPI) - SkillGap MVP
 
+cd backend
 ## Install
 python -m venv venv
-source venv/bin/activate      # Windows: venv\Scripts\activate
+source venv/Scripts/activate      # Windows: venv\Scripts\activate
 pip install -r requirements.txt
 
 ## Run
