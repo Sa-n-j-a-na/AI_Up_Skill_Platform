@@ -1,0 +1,12 @@
+{
+  "firstName": "Priya",
+  "lastName": "Rao",
+  "headline": "Final Year CSE Student - Aspiring System Software Engineer",
+  "skills": ["C", "Embedded Systems", "Operating Systems"],
+  "positions": [
+    {"company": "University", "title": "Research Intern", "startDate": "2024-05", "endDate": "2024-08"}
+  ],
+  "education": [
+    {"school": "Rohini College", "degree": "B.Tech", "field": "Computer Science"}
+  ]
+}
