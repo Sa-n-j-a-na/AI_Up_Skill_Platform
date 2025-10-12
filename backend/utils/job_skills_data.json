@@ -1,0 +1,22 @@
+{
+  "softwareengineer": ["Java", "Python", "C++", "Data Structures", "Algorithms", "SQL", "Git", "Linux", "OOP", "REST APIs", "Agile"],
+  "frontenddeveloper": ["HTML", "CSS", "JavaScript", "React", "Vue.js", "Angular", "Webpack", "UI/UX", "Git", "Responsive Design", "TypeScript"],
+  "backenddeveloper": ["Java", "Node JS","Express JS", "Python", "Spring Boot", "Django", "Flask", "REST APIs", "SQL", "NoSQL", "Microservices", "Docker"],
+  "fullstackdeveloper": ["JavaScript", "React", "Node.js", "Express.js", "NoSQL", "SQL", "HTML", "CSS", "REST APIs", "Git", "Agile"],
+  "datascientist": ["Python", "R", "SQL", "Machine Learning", "Deep Learning", "Statistics", "Pandas", "Numpy", "Scikit-learn", "TensorFlow", "Data Visualization"],
+  "machinelearningengineer": ["Python", "TensorFlow", "PyTorch", "Scikit-learn", "ML Algorithms", "Data Preprocessing", "Feature Engineering", "SQL", "AWS", "Model Deployment", "Statistics"],
+  "devopsengineer": ["Linux", "Shell Scripting", "Docker", "Kubernetes", "CI/CD", "Jenkins", "AWS", "Terraform", "Ansible", "Networking", "Monitoring Tools"],
+  "cloudengineer": ["AWS", "Azure", "Google Cloud", "Terraform", "Kubernetes", "Docker", "Networking", "CI/CD", "Linux", "Python", "Security"],
+  "cybersecurityanalyst": ["Network Security", "Firewalls", "IDS/IPS", "SIEM", "Penetration Testing", "Incident Response", "Linux", "Python", "Cloud Security", "Cryptography", "Vulnerability Management"],
+  "databaseadministrator": ["SQL", "Oracle", "MySQL", "PostgreSQL", "MongoDB", "Backup & Recovery", "Performance Tuning", "Linux", "Cloud Databases", "Security", "Replication"],
+  "systemadministrator": ["Linux", "Windows Server", "Networking", "Shell Scripting", "Active Directory", "DNS", "DHCP", "Virtualization", "Monitoring", "Security", "Backup Solutions"],
+  "aiengineer": ["Python", "TensorFlow", "PyTorch", "Deep Learning", "NLP", "Computer Vision", "ML Algorithms", "Data Preprocessing", "Model Deployment", "SQL", "Cloud Platforms"],
+  "blockchaindeveloper": ["Solidity", "Ethereum", "Smart Contracts", "JavaScript", "Node.js", "Cryptography", "Web3.js", "Truffle", "Hyperledger", "Python", "Security"],
+  "gamedeveloper": ["C++", "C#", "Unity", "Unreal Engine", "3D Modeling", "Animation", "Graphics Programming", "Shaders", "Physics Engines", "AI in Games", "Git"],
+  "uiuxdesigner": ["Wireframing", "Prototyping", "Figma", "Adobe XD", "Sketch", "Photoshop", "Illustrator", "Design Systems", "User Research", "Usability Testing", "Interaction Design"],
+  "mobileappdeveloper": ["Java", "Kotlin", "Swift", "Objective-C", "React Native", "Flutter", "Dart", "Xcode", "Android Studio", "REST APIs", "Firebase"],
+  "dataengineer": ["Python", "SQL", "ETL", "Hadoop", "Spark", "Kafka", "Airflow", "Data Warehousing", "AWS", "BigQuery", "Snowflake"],
+  "networkengineer": ["Networking", "Cisco", "Routing", "Switching", "Firewalls", "VPN", "LAN/WAN", "Linux", "VoIP", "Network Monitoring", "Cloud Networking"],
+  "qaengineer": ["Manual Testing", "Automation Testing", "Selenium", "JUnit", "TestNG", "Python", "API Testing", "Performance Testing", "Bug Tracking", "Agile", "CI/CD"],
+  "embeddedsystemsengineer": ["C", "C++", "RTOS", "Microcontrollers", "ARM", "Assembly", "UART", "I2C", "SPI", "Debugging", "PCB Design"]
+}
