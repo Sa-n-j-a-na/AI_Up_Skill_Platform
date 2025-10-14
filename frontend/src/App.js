@@ -3,6 +3,7 @@ import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
 import Home from "./Home";
 import Analysis from "./Analysis";
 import LearningPath from "./LearningPath";
+import InterviewSimulation from "./InterviewSimulation";
 
 function App() {
   return (
@@ -11,6 +12,7 @@ function App() {
         <Route path="/" element={<Home />} />
         <Route path="/analysis" element={<Analysis />} />
         <Route path="/learning-path" element={<LearningPath />} />
+        <Route path="/interview-simulation" element={<InterviewSimulation />} />
       </Routes>
     </Router>
   );

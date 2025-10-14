@@ -1,8 +1,10 @@
 import React, { useState } from "react";
-import { useLocation } from "react-router-dom";
+import { useLocation, useNavigate } from "react-router-dom";
 
 const LearningPath = () => {
   const location = useLocation();
+  const navigate = useNavigate();
+
   const { result } = location.state || {};
   const { resumeSkills = [], requiredSkills = [], missingSkills = [], score = 0 } = result || {};
 
@@ -34,9 +36,18 @@ const LearningPath = () => {
     setTasks(newTasks);
   };
 
-  // ✅ Missing JSX return (added below)
   return (
     <div className="bg-background-light dark:bg-background-dark font-display min-h-screen text-content-light dark:text-content-dark flex flex-col">
+      {/* --- Interview Simulation Button --- */}
+      <div className="flex justify-end p-4">
+        <button
+          onClick={() => navigate("/interview-simulation")}
+          className="px-4 py-2 bg-primary text-white rounded-lg shadow hover:bg-primary-dark transition"
+        >
+          🎤 Start Interview Simulation
+        </button>
+      </div>
+
       <main className="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-12">
         <div className="max-w-4xl mx-auto">
           <div className="text-center mb-12">
