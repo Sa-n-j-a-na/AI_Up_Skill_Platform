@@ -6,7 +6,7 @@ const LearningPath = () => {
   const navigate = useNavigate();
 
   // Data from Analysis page
-  const { result } = location.state || {};
+  const { result, jobRole } = location.state || {};
   const { missingSkills = [] } = result || {};
 
   // Backend roadmap
@@ -74,7 +74,13 @@ const LearningPath = () => {
       {/* Top bar */}
       <div className="flex justify-end p-4">
         <button
-          onClick={() => navigate("/interview-simulation")}
+          onClick={() =>
+            navigate("/interview-simulation", {
+              state: {
+                jobRole: location.state?.jobRole,
+              },
+            })
+          }
           className="px-4 py-2 bg-primary text-white rounded-lg shadow hover:bg-primary/90"
         >
           🎤 Start Interview Simulation

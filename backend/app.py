@@ -9,11 +9,17 @@ import json
 from openai import OpenAI
 from dotenv import load_dotenv
 
+# ============================
+# 🚀 APP SETUP
+# ============================
 app = Flask(__name__)
 CORS(app)
 
 # 🔑 Load environment variables
 load_dotenv()
+print("API KEY FOUND:", bool(os.getenv("OPENAI_API_KEY")))
+print("API KEY PREFIX:", os.getenv("OPENAI_API_KEY")[:7])
+
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
 # ✅ Load job skills dataset once
@@ -46,7 +52,7 @@ def analyze():
     # ✅ Skill gap analysis
     analysis_result = analyze_skills(resume_skills, job_role)
 
-    # --- DEBUG PRINT (SAFE PLACE) ---
+    # --- DEBUG PRINT ---
     print("\n=== DEBUG INFO ===")
     print("Job Role:", job_role)
     print("Resume Skills:", resume_skills)
@@ -54,7 +60,6 @@ def analyze():
     print("Missing Skills:", analysis_result["missingSkills"])
     print("===================\n")
 
-    # ✅ RETURN RESULT (THIS WAS MISSING)
     return jsonify(analysis_result)
 
 
@@ -63,19 +68,32 @@ def analyze():
 # ============================
 @app.route("/interview", methods=["POST"])
 def interview():
-    data = request.json
+    print("RAW REQUEST JSON:", request.json)
+
+    data = request.json or {}
     job_role = data.get("jobRole", "Software Engineer")
     messages = data.get("messages", [])
 
-    # FIRST question (when interview starts)
+    # 🟢 FIRST QUESTION (no OpenAI call)
     if len(messages) == 0:
         return jsonify({
             "reply": (
-                f"Welcome to your {job_role} interview. "
+                f"Welcome to your {job_role} interview. \n"
                 "First question: Can you briefly introduce yourself?"
             )
         })
 
+
+    # ✅ FIX 2: FILTER INVALID / MALFORMED MESSAGES
+    clean_messages = [
+        m for m in messages
+        if isinstance(m, dict)
+        and m.get("role")
+        and m.get("content")
+        and isinstance(m.get("content"), str)
+    ]
+
+    # System prompt
     full_messages = [
         {
             "role": "system",
@@ -86,20 +104,22 @@ def interview():
                 "(one strength + one improvement), then ask the next question."
             ),
         }
-    ] + messages
+    ] + clean_messages
 
     try:
-        response = client.chat.completions.create(
+        # ✅ USE RESPONSES API (matches test_openai.py)
+        response = client.responses.create(
             model="gpt-5-nano",
-            messages=full_messages,
-            temperature=0.7,
+            input=full_messages
         )
 
-        reply = response.choices[0].message.content
+        reply = response.output_text
 
         return jsonify({"reply": reply})
 
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -116,5 +136,8 @@ def learning_path():
         return jsonify({"error": str(e)}), 500
 
 
+# ============================
+# ▶️ RUN SERVER
+# ============================
 if __name__ == "__main__":
     app.run(debug=True)

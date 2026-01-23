@@ -24,12 +24,15 @@ const InterviewSimulation = () => {
 
         const data = await res.json();
 
-        setMessages([
-          {
-            role: "assistant",
-            content: data.reply,
-          },
-        ]);
+        // ✅ SAFETY CHECK: only add message if reply exists
+        if (data.reply) {
+          setMessages([
+            {
+              role: "assistant",
+              content: data.reply,
+            },
+          ]);
+        }
       } catch (err) {
         setMessages([
           {
@@ -45,45 +48,48 @@ const InterviewSimulation = () => {
 
   // 🔹 Send user answer and get next question + feedback
   const sendMessage = async () => {
-  if (!input.trim()) return;
+    if (!input.trim()) return;
 
-  const updatedMessages = [
-    ...messages,
-    { role: "user", content: input },
-  ];
+    const updatedMessages = [
+      ...messages,
+      { role: "user", content: input },
+    ];
 
-  setMessages(updatedMessages);
-  setInput("");
-  setLoading(true);
+    setMessages(updatedMessages);
+    setInput("");
+    setLoading(true);
 
-  try {
-    const res = await fetch("http://localhost:5000/interview", {
-      method: "POST",
-      headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({
-        jobRole,
-        messages: updatedMessages,
-      }),
-    });
+    try {
+      const res = await fetch("http://localhost:5000/interview", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          jobRole,
+          messages: updatedMessages,
+        }),
+      });
 
-    const data = await res.json();
+      const data = await res.json();
 
-    setMessages([
-      ...updatedMessages,
-      { role: "assistant", content: data.reply },
-    ]);
-  } catch (err) {
-    setMessages([
-      ...updatedMessages,
-      {
-        role: "assistant",
-        content: "⚠️ Interview service unavailable.",
-      },
-    ]);
-  } finally {
-    setLoading(false);
-  }
-};
+      // ✅ SAFETY CHECK: prevent empty assistant messages
+      if (data.reply) {
+        setMessages([
+          ...updatedMessages,
+          { role: "assistant", content: data.reply },
+        ]);
+      }
+    } catch (err) {
+      setMessages([
+        ...updatedMessages,
+        {
+          role: "assistant",
+          content: "⚠️ Interview service unavailable.",
+        },
+      ]);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="min-h-screen bg-background-light dark:bg-background-dark flex justify-center items-center p-6">
@@ -96,7 +102,7 @@ const InterviewSimulation = () => {
           {messages.map((msg, idx) => (
             <div
               key={idx}
-              className={`mb-3 ${
+              className={`mb-3 whitespace-pre-line ${
                 msg.role === "assistant"
                   ? "text-blue-600 dark:text-blue-400"
                   : "text-green-700 dark:text-green-300 text-right"
@@ -105,6 +111,7 @@ const InterviewSimulation = () => {
               <b>{msg.role === "assistant" ? "Interviewer: " : "You: "}</b>
               {msg.content}
             </div>
+
           ))}
 
           {loading && (
