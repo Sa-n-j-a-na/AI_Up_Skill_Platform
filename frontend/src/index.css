@@ -13,3 +13,8 @@
   font-size: 1.2rem; /* adjust size if needed */
   vertical-align: middle;
 }
+@keyframes floatSoft {
+  0% { transform: translateY(0); }
+  50% { transform: translateY(-6px); }
+  100% { transform: translateY(0); }
+}

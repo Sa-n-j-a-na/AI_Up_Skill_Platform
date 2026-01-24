@@ -1,21 +1,22 @@
 import React, { useState } from "react";
-import axios from "axios";
 import { useNavigate } from "react-router-dom";
 
 const Home = () => {
   const [resume, setResume] = useState(null);
   const [jobRole, setJobRole] = useState("");
   const [loading, setLoading] = useState(false);
-  const [result, setResult] = useState(null);
+
+  const navigate = useNavigate();
 
   const handleFileChange = (e) => setResume(e.target.files[0]);
   const handleRoleChange = (e) => setJobRole(e.target.value);
-  const navigate = useNavigate();
+
   const handleAnalyze = async () => {
     if (!resume || !jobRole) {
       alert("Please upload a resume and enter a job role.");
       return;
     }
+
     setLoading(true);
 
     const formData = new FormData();
@@ -28,11 +29,8 @@ const Home = () => {
         body: formData,
       });
       const data = await res.json();
-
-      // Navigate to Analysis page with state
       navigate("/analysis", { state: { result: data, jobRole } });
     } catch (err) {
-      console.error(err);
       alert("Error analyzing resume");
     } finally {
       setLoading(false);
@@ -40,112 +38,113 @@ const Home = () => {
   };
 
   return (
-    <div className="flex flex-col min-h-screen bg-background-light dark:bg-background-dark font-display text-gray-800 dark:text-gray-200">
-      <main className="flex-grow flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-        <div className="w-full max-w-xl mx-auto space-y-8 text-center">
-          <div>
-            <div className="flex justify-center items-center gap-3 mb-4">
-              <svg
-                className="h-10 w-10 text-primary"
-                fill="none"
-                viewBox="0 0 48 48"
-                xmlns="http://www.w3.org/2000/svg"
-              >
-                <path
-                  d="M24 4C25.7818 14.2173 33.7827 22.2182 44 24C33.7827 25.7818 25.7818 33.7827 24 44C22.2182 33.7827 14.2173 25.7818 4 24C14.2173 22.2182 22.2182 14.2173 24 4Z"
-                  fill="currentColor"
-                />
-              </svg>
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">SkillUp</h1>
-            </div>
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white">
+    <div className="relative min-h-screen overflow-hidden bg-[#f6efe8] font-display text-gray-800">
+
+      {/* ===== Layered textured background ===== */}
+      <div className="absolute inset-0 bg-gradient-to-br from-[#ffe9f0] via-[#f3e8dd] to-[#efe1d3]" />
+      <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_20%_15%,#ffffff_0%,transparent_45%),radial-gradient(circle_at_80%_25%,#ffffff_0%,transparent_50%)]" />
+
+      {/* ===== Decorative corners ===== */}
+      <svg className="absolute top-0 left-0 w-64 opacity-20" viewBox="0 0 200 200">
+        <path
+          fill="#7fb77e"
+          d="M42.5,-56.4C54.6,-46.5,63.2,-33.6,66.7,-19.2C70.2,-4.7,68.6,11.2,61.2,23.8C53.8,36.3,40.6,45.6,26.2,53.3C11.8,61.1,-3.8,67.3,-18.6,63.7C-33.4,60.2,-47.4,46.9,-56.1,31.8C-64.9,16.8,-68.4,-0.1,-64.2,-15.4C-60.1,-30.6,-48.3,-44.2,-34.2,-54C-20.1,-63.9,-10.1,-70.1,2.5,-73.5C15,-76.9,30.1,-77.4,42.5,-56.4Z"
+          transform="translate(100 100)"
+        />
+      </svg>
+
+      <svg className="absolute bottom-0 right-0 w-64 opacity-20" viewBox="0 0 200 200">
+        <path
+          fill="#9ac5f4"
+          d="M34.9,-53.3C47.2,-45.4,60.4,-40.1,65.7,-29.7C71,-19.3,68.4,-3.9,62.8,8.5C57.1,20.8,48.4,30.2,38.1,40.5C27.8,50.8,15.9,62,-0.4,62.5C-16.7,63,-33.5,52.9,-43.5,39.4C-53.5,25.9,-56.7,9.1,-55.5,-7.1C-54.3,-23.3,-48.6,-38.8,-37.8,-47.7C-27,-56.7,-13.5,-59.1,-0.3,-58.6C12.9,-58.1,25.8,-54.3,34.9,-53.3Z"
+          transform="translate(100 100)"
+        />
+      </svg>
+
+      {/* ===== Main content ===== */}
+      <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
+        <div className="w-full max-w-xl text-center">
+
+          {/* Header */}
+          <div className="mb-8">
+            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900">
+              ✨SkillUp✨
+            </h1>
+            <h2 className="mt-3 text-3xl font-bold text-gray-900">
               Analyze Your Resume
             </h2>
-            <p className="mt-2 text-base text-gray-600 dark:text-gray-400">
+            <p className="mt-2 font-bold text-gray-600">
               Upload your resume and enter your desired job role to get started.
             </p>
           </div>
 
-          <div className="bg-white dark:bg-background-dark/50 p-8 rounded-xl border border-gray-200 dark:border-gray-800 shadow-lg space-y-6">
-            <div className="space-y-6">
-              {/* Resume Upload */}
-              <div>
-                <label
-                  htmlFor="resume-upload"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-left mb-1"
-                >
-                  Upload Resume
-                </label>
-                <div className="mt-1 flex justify-center px-6 pt-10 pb-12 border-2 border-dashed border-gray-300 dark:border-gray-700 rounded-lg hover:border-primary dark:hover:border-primary transition-colors">
-                  <div className="space-y-1 text-center">
-                    <span className="material-symbols-outlined text-5xl text-gray-400 dark:text-gray-500">
-                      upload_file
-                    </span>
-                    <div className="flex text-sm text-gray-600 dark:text-gray-400 justify-center gap-1">
-                      <label
-                        htmlFor="resume-upload"
-                        className="relative cursor-pointer bg-transparent rounded font-medium text-primary hover:text-primary/80 focus-within:outline-none focus-within:ring-2 focus-within:ring-offset-2 focus-within:ring-primary"
-                      >
-                        <span>Upload a file</span>
-                        <input
-                          id="resume-upload"
-                          type="file"
-                          className="sr-only"
-                          onChange={handleFileChange}
-                        />
-                      </label>
-                      <p>or drag and drop</p>
-                    </div>
-                    <p className="text-xs text-gray-500 dark:text-gray-500">PDF, DOCX up to 10MB</p>
-                  </div>
-                </div>
-                {resume && (
-                  <p className="mt-2 text-sm text-gray-600 dark:text-gray-400">
-                    Selected file: {resume.name}
-                  </p>
-                )}
-              </div>
+          {/* Card */}
+          <div className="relative bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 shadow-[0_30px_80px_rgba(0,0,0,0.15)] p-8 space-y-6">
 
-              {/* Job Role Input */}
-              <div>
-                <label
-                  htmlFor="job-role"
-                  className="block text-sm font-medium text-gray-700 dark:text-gray-300 text-left mb-1"
-                >
-                  Desired Job Role
-                </label>
+            {/* Upload Resume */}
+            <div className="text-left">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Upload Resume
+              </label>
+
+              <label className="flex flex-col items-center justify-center rounded-2xl
+                border-2 border-dashed border-[#B7C7A1]
+                bg-[#B7C7A1]/30
+                p-10 cursor-pointer transition hover:bg-[#B7C7A1]/40">
+
+                <span className="text-gray-700 text-sm">
+                  Upload a file or drag and drop
+                </span>
+                <span className="text-xs text-gray-500 mt-1">
+                  PDF, DOCX up to 10MB
+                </span>
+
                 <input
-                  id="job-role"
-                  type="text"
-                  value={jobRole}
-                  onChange={handleRoleChange}
-                  placeholder="e.g., Senior Product Manager"
-                  className="mt-1 block w-full px-3 py-3 text-base border-gray-300 dark:border-gray-700 focus:outline-none focus:ring-primary focus:border-primary sm:text-sm rounded-lg bg-background-light dark:bg-gray-900 text-gray-900 dark:text-gray-200"
+                  type="file"
+                  className="hidden"
+                  onChange={handleFileChange}
                 />
-              </div>
+              </label>
+
+              {resume && (
+                <p className="mt-2 text-xs text-gray-500">
+                  Selected file: {resume.name}
+                </p>
+              )}
+            </div>
+
+            {/* Job Role */}
+            <div className="text-left">
+              <label className="block text-sm font-medium text-gray-700 mb-2">
+                Desired Job Role
+              </label>
+              <input
+                type="text"
+                value={jobRole}
+                onChange={handleRoleChange}
+                placeholder="e.g., Full Stack Developer"
+                className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#B7C7A1]"
+              />
             </div>
 
             {/* Analyze Button */}
-            <div className="pt-4">
-              <button
-                onClick={handleAnalyze}
-                disabled={loading}
-                className="w-full flex justify-center py-4 px-4 border border-transparent rounded-lg shadow-sm text-lg font-bold text-white bg-primary hover:opacity-90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-primary transition-opacity"
-              >
-                {loading ? "Analyzing..." : "Analyze"}
-              </button>
-            </div>
+            <button
+              onClick={handleAnalyze}
+              disabled={loading}
+              className="group relative w-full overflow-hidden rounded-2xl py-4 font-bold text-white
+                bg-[#B7C7A1]
+                shadow-[0_12px_24px_rgba(183,199,161,0.35)]
+                transition-all duration-300
+                hover:bg-[#A3B18A]
+                hover:shadow-lg
+                disabled:bg-[#CCD5AE]">
 
-            {/* Result */}
-            {result && (
-              <div className="mt-6 text-left">
-                <h2 className="font-bold text-lg">Resume Skills:</h2>
-                <p>{result.resumeSkills?.join(", ")}</p>
-              </div>
-            )}
+              {loading ? "Analyzing..." : "Analyze"}
+            </button>
+
           </div>
         </div>
-      </main>
+      </div>
     </div>
   );
 };
