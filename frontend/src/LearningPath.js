@@ -7,11 +7,12 @@ const LearningPath = () => {
 
   // Data from Analysis page
   const { result, jobRole } = location.state || {};
-  const { missingSkills = [] } = result || {};
+    const { missingSkills = [], score: initialScore = 0 } = result || {};
 
   // Backend roadmap
   const [roadmap, setRoadmap] = useState([]);
   const [loading, setLoading] = useState(true);
+const [showCongrats, setShowCongrats] = useState(false);
 
   // Progress tasks
   const [tasks, setTasks] = useState([]);
@@ -50,6 +51,7 @@ const LearningPath = () => {
       });
   }, [missingSkills]);
 
+
   // Toggle checkbox
   const toggleTask = (index) => {
     const updatedTasks = [...tasks];
@@ -61,14 +63,69 @@ const LearningPath = () => {
   const completedCount = tasks.filter((t) => t.completed).length;
   const totalTasks = tasks.length;
 
-  const progressPercent =
-    totalTasks === 0
-      ? 0
-      : Math.round((completedCount / totalTasks) * 100);
+ 
+
+// start from initialScore from Analysis
+const progressPercent =
+  totalTasks === 0
+    ? initialScore
+    : Math.min(
+        100,
+        Math.round(initialScore + (completedCount / totalTasks) * (100 - initialScore))
+      );
 
   // Resume score is SAME as progress (correct logic)
   const updatedScore = progressPercent;
+  useEffect(() => {
+    if (updatedScore === 100) {
+      setShowCongrats(true);
+    }
+  }, [updatedScore]);
 
+  const getStatusMessage = (score) => {
+  if (score >= 100) {
+    return {
+      title: "🎉 Congratulations!",
+      message: "You are 100% interview ready! You can confidently attend interviews now.",
+      badge: "🏆 Fully Interview Ready"
+    };
+  } 
+  if (score >= 85) {
+    return {
+      title: "🔥 Almost There!",
+      message: "You are interview ready. Start applying and practicing interviews.",
+      badge: "✅ Interview Ready"
+    };
+  }
+  if (score >= 70) {
+    return {
+      title: "💪 Great Progress!",
+      message: "You are in interview preparation stage. Focus on mock interviews.",
+      badge: "🎯 Interview Prep Stage"
+    };
+  }
+  if (score >= 50) {
+    return {
+      title: "📘 Skill Building Phase",
+      message: "Strong foundation building. Continue learning missing skills.",
+      badge: "🧠 Skill Building"
+    };
+  }
+  if (score >= 30) {
+    return {
+      title: "🚀 Getting Started",
+      message: "Foundation started. Keep learning and growing.",
+      badge: "📚 Foundation Stage"
+    };
+  }
+  return {
+    title: "🧩 Learning Mode",
+    message: "Start your learning journey to become interview ready.",
+    badge: "🌱 Beginner Stage"
+  };
+};
+
+const status = getStatusMessage(updatedScore);
   return (
     <div className="bg-background-light dark:bg-background-dark min-h-screen text-gray-800 dark:text-gray-200">
       {/* Top bar */}
@@ -158,7 +215,20 @@ const LearningPath = () => {
           <p className="text-sm text-gray-500 mb-4">
             {completedCount} of {totalTasks} tasks completed
           </p>
+           {/* 🎯 Status Message */}
+<div className="mt-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700">
+  <p className="font-bold text-green-700 dark:text-green-300">
+    {status.title}
+  </p>
+  <p className="text-sm mt-1">
+    {status.message}
+  </p>
+  <p className="text-xs mt-2 font-semibold">
+    {status.badge}
+  </p>
+</div>
 
+          <br></br>
           {/* Checklist */}
           <div className="space-y-3">
             {tasks.map((task, idx) => (
@@ -183,6 +253,46 @@ const LearningPath = () => {
           </div>
         </div>
       </div>
+      {/* 🎉 100% Congratulations Popup */}
+{showCongrats && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div className="bg-white dark:bg-background-dark rounded-xl p-8 max-w-md w-full text-center shadow-2xl border border-green-400">
+      <h2 className="text-2xl font-bold text-green-600 mb-3">
+        🎉 Congratulations!
+      </h2>
+
+      <p className="text-lg font-semibold mb-2">
+        You are 100% Interview Ready!
+      </p>
+
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+        You have completed all recommended courses and mini-projects. You can confidently attend interviews.
+      </p>
+
+      <div className="flex justify-center gap-4">
+        <button
+          onClick={() => setShowCongrats(false)}
+          className="px-4 py-2 rounded-lg bg-gray-300 dark:bg-gray-700"
+        >
+          Close
+        </button>
+
+        <button
+          onClick={() => {
+            setShowCongrats(false);
+            navigate("/interview-simulation", {
+              state: { jobRole },
+            });
+          }}
+          className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+        >
+          🎤 Start Interview
+        </button>
+      </div>
+    </div>
+  </div>
+)}
+
     </div>
   );
 };

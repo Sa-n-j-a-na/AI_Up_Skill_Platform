@@ -5,6 +5,13 @@ const Analysis = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const { result, jobRole } = location.state || {};
+  const [showCongrats, setShowCongrats] = React.useState(false);
+  const { resumeSkills, requiredSkills, missingSkills, score } = result;
+  React.useEffect(() => {
+  if (score === 100) {
+    setShowCongrats(true);
+  }
+}, [score]);
 
   if (!result) {
     return (
@@ -14,7 +21,7 @@ const Analysis = () => {
     );
   }
 
-  const { resumeSkills, requiredSkills, missingSkills, score } = result;
+  
 
   return (
     <div className="relative min-h-screen overflow-hidden font-display text-gray-800 bg-[#f7f8fa]">
@@ -143,6 +150,45 @@ const Analysis = () => {
             Generate Learning Path
           </button>
         </div>
+        {/* 🎉 100% Congratulations Popup */}
+{showCongrats && (
+  <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60">
+    <div className="bg-white dark:bg-background-dark rounded-xl p-8 max-w-md w-full text-center shadow-2xl border border-green-400">
+      <h2 className="text-2xl font-bold text-green-600 mb-3">
+        🎉 Congratulations!
+      </h2>
+
+      <p className="text-lg font-semibold mb-2">
+        You are 100% Interview Ready!
+      </p>
+
+      <p className="text-sm text-gray-600 dark:text-gray-400 mb-6">
+        You have completed all recommended courses and mini-projects. You can confidently attend interviews.
+      </p>
+
+      <div className="flex justify-center gap-4">
+        <button
+          onClick={() => setShowCongrats(false)}
+          className="px-4 py-2 rounded-lg bg-gray-300 dark:bg-gray-700"
+        >
+          Close
+        </button>
+
+        <button
+          onClick={() => {
+            setShowCongrats(false);
+            navigate("/interview-simulation", {
+              state: { jobRole },
+            });
+          }}
+          className="px-4 py-2 rounded-lg bg-green-600 text-white hover:bg-green-700"
+        >
+          🎤 Start Interview
+        </button>
+      </div>
+    </div>
+  </div>
+)}
 
       </main>
     </div>
