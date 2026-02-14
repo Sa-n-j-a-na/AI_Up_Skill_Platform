@@ -67,8 +67,9 @@ const Home = () => {
 
           {/* Header */}
           <div className="mb-8">
+
             <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900">
-              ✨SkillUp✨
+              SkillUp
             </h1>
             <h2 className="mt-3 text-3xl font-bold text-gray-900">
               Analyze Your Resume
