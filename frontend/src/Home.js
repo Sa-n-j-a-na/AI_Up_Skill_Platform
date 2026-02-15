@@ -133,10 +133,10 @@ const Home = () => {
               onClick={handleAnalyze}
               disabled={loading}
               className="group relative w-full overflow-hidden rounded-2xl py-4 font-bold text-white
-                bg-[#B7C7A1]
+                bg-[#A3B18A]
                 shadow-[0_12px_24px_rgba(183,199,161,0.35)]
                 transition-all duration-300
-                hover:bg-[#A3B18A]
+                hover:bg-[#8D9977]
                 hover:shadow-lg
                 disabled:bg-[#CCD5AE]">
 

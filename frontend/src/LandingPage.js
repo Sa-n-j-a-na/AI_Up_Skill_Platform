@@ -57,15 +57,15 @@ const LandingPage = () => {
 
       {/* ================= HERO ================= */}
       {/* HERO */}
-      <div className="px-40 py-10">
+      <div className="w-full py-10">
         <div
-          className="min-h-[520px] flex flex-col justify-end rounded-lg px-10 pb-12 bg-cover bg-center"
+          className="min-h-[520px] flex items-end bg-cover bg-center"
           style={{
             backgroundImage:
               "linear-gradient(rgba(0,0,0,0.3), rgba(0,0,0,0.6)), url('https://images.unsplash.com/photo-1552581234-26160f608093')",
           }}
         >
-          <div className="max-w-[600px]">
+          <div className="px-20 pb-12 max-w-[700px]">
             <h1 className="text-5xl font-black leading-tight tracking-[-0.03em] text-white">
               Unlock Your Career Potential
             </h1>
@@ -85,8 +85,61 @@ const LandingPage = () => {
           </div>
         </div>
       </div>
+          
+      {/* ================= AI INSIGHT SECTION ================= */}
+      <section className="relative w-full py-24 bg-white overflow-hidden">
+
+        {/* Soft Background Orbs */}
+        <div className="absolute -top-20 -right-20 w-[300px] h-[300px] bg-blue-100 rounded-full blur-3xl opacity-40"></div>
+        <div className="absolute -bottom-20 right-0 w-[350px] h-[350px] bg-purple-100 rounded-full blur-3xl opacity-40"></div>
+
+        <div className="relative z-10 max-w-7xl mx-auto px-16 grid md:grid-cols-2 gap-16 items-center">
+
+          {/* LEFT CONTENT */}
+          <div>
+            <h2 className="text-4xl font-bold text-[#0f1c25] leading-tight">
+              Get AI-Driven Career Insights in Minutes
+            </h2>
+
+            <p className="mt-6 text-gray-600 text-lg leading-relaxed">
+              SkillUp transforms your resume into actionable intelligence —
+              identifying skill gaps, evaluating job readiness, and building
+              a personalized learning roadmap powered by intelligent AI models.
+            </p>
+
+            <ul className="mt-8 space-y-4 text-gray-700">
+              <li className="flex items-start gap-3">
+                <span className="text-[#B7C7A1] font-bold text-xl">•</span>
+                <span>Clear identification of your strengths and missing skills</span>
+              </li>
+
+              <li className="flex items-start gap-3">
+                <span className="text-[#B7C7A1] font-bold text-xl">•</span>
+                <span>Instant comparison with industry job role requirements</span>
+              </li>
+
+              <li className="flex items-start gap-3">
+                <span className="text-[#B7C7A1] font-bold text-xl">•</span>
+                <span>Personalized learning path and interview preparation guidance</span>
+              </li>
+            </ul>
+          </div>
+
+          {/* RIGHT IMAGE */}
+          <div>
+            <img
+              src="https://images.unsplash.com/photo-1551836022-d5d88e9218df"
+              alt="AI Career Analysis"
+              className="rounded-xl shadow-xl w-full object-cover"
+            />
+          </div>
+
+        </div>
+      </section>
+
+
       {/* ================= HOW IT WORKS ================= */}
-      <section className="px-16 pb-24 relative z-10">
+      <section className="px-16 pt-16 pb-24 relative z-10">
         <h2 className="text-4xl font-bold text-center">
         How SkillUp Works
         </h2>
