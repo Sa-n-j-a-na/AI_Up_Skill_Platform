@@ -2,7 +2,7 @@ import React, { useEffect, useState } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Confetti from "react-confetti";
 
-/* 🎉 SVG Congrats board (REPLACES popup, nothing else) */
+/* 🎉 SVG Congrats board */
 const CongratsBoard = ({ fading, onStartInterview }) => {
   return (
     <div
@@ -11,8 +11,6 @@ const CongratsBoard = ({ fading, onStartInterview }) => {
       }`}
     >
       <div className="flex gap-4 bg-white rounded-xl shadow-2xl border border-green-400 px-6 py-4 max-w-md">
-
-        {/* SVG Doll */}
         <svg viewBox="0 0 100 100" className="w-16 h-16 shrink-0">
           <rect x="47" y="10" width="6" height="15" rx="2" fill="#78909C" />
           <circle cx="50" cy="10" r="4" fill="#FF5252" />
@@ -27,21 +25,16 @@ const CongratsBoard = ({ fading, onStartInterview }) => {
           <rect x="55" y="75" width="10" height="15" rx="3" fill="#78909C" />
         </svg>
 
-        {/* SAME POPUP CONTENT */}
         <div>
           <h2 className="text-lg font-bold text-green-600 mb-1">
             🎉 Congratulations!
           </h2>
-
           <p className="font-semibold mb-1">
             You are 100% Interview Ready!
           </p>
-
           <p className="text-sm text-gray-600 mb-3">
             You have completed all recommended courses and mini-projects.
-            You can confidently attend interviews.
           </p>
-
           <button
             onClick={onStartInterview}
             className="px-4 py-2 rounded-lg bg-green-600 text-white font-semibold hover:bg-green-700"
@@ -64,12 +57,11 @@ const LearningPath = () => {
   const [roadmap, setRoadmap] = useState([]);
   const [loading, setLoading] = useState(true);
   const [tasks, setTasks] = useState([]);
-
   const [showCongrats, setShowCongrats] = useState(false);
   const [fadeCongrats, setFadeCongrats] = useState(false);
   const [runConfetti, setRunConfetti] = useState(false);
+  const [sidebarOpen, setSidebarOpen] = useState(true);
 
-  /* Fetch learning path */
   useEffect(() => {
     fetch("http://localhost:5000/learning-path", {
       method: "POST",
@@ -99,7 +91,6 @@ const LearningPath = () => {
     setTasks(updated);
   };
 
-  /* ===== SCORE LOGIC (UNCHANGED) ===== */
   const completedCount = tasks.filter((t) => t.completed).length;
   const totalTasks = tasks.length;
 
@@ -113,82 +104,94 @@ const LearningPath = () => {
 
   const updatedScore = progressPercent;
 
-  /* 🎉 Celebration trigger */
   useEffect(() => {
-      if (updatedScore === 100) {
-        setShowCongrats(true);
-        setRunConfetti(true);
+    if (updatedScore === 100) {
+      setShowCongrats(true);
+      setRunConfetti(true);
+      setTimeout(() => setFadeCongrats(true), 6000);
+      setTimeout(() => setShowCongrats(false), 7500);
+      setTimeout(() => setRunConfetti(false), 18000);
+    }
+  }, [updatedScore]);
 
-        // Start fade a bit later
-        setTimeout(() => setFadeCongrats(true), 6000);
-
-        // Remove board after fade
-        setTimeout(() => setShowCongrats(false), 7500);
-
-        // Confetti lasts 10 seconds more
-        setTimeout(() => setRunConfetti(false), 18000);
-      }
-    }, [updatedScore]);
-
-
-  /* Status message logic (UNCHANGED) */
-  const getStatusMessage = (score) => {
-    if (score >= 100)
+  const status = (() => {
+    if (updatedScore >= 100)
       return {
         title: "🎉 Congratulations!",
-        message: "You are 100% interview ready! You can confidently attend interviews now.",
+        message: "You are 100% interview ready!",
         badge: "🏆 Fully Interview Ready",
       };
-    if (score >= 85)
+    if (updatedScore >= 85)
       return {
         title: "🔥 Almost There!",
-        message: "You are interview ready. Start applying and practicing interviews.",
+        message: "You are interview ready.",
         badge: "✅ Interview Ready",
       };
-    if (score >= 70)
+    if (updatedScore >= 70)
       return {
         title: "💪 Great Progress!",
-        message: "You are in interview preparation stage. Focus on mock interviews.",
+        message: "You are in interview preparation stage.",
         badge: "🎯 Interview Prep Stage",
       };
-    if (score >= 50)
+    if (updatedScore >= 50)
       return {
         title: "📘 Skill Building Phase",
-        message: "Strong foundation building. Continue learning missing skills.",
+        message: "Continue learning missing skills.",
         badge: "🧠 Skill Building",
       };
-    if (score >= 30)
+    if (updatedScore >= 30)
       return {
         title: "🚀 Getting Started",
-        message: "Foundation started. Keep learning and growing.",
+        message: "Foundation started.",
         badge: "📚 Foundation Stage",
       };
     return {
       title: "🧩 Learning Mode",
-      message: "Start your learning journey to become interview ready.",
+      message: "Start your learning journey.",
       badge: "🌱 Beginner Stage",
     };
-  };
-
-  const status = getStatusMessage(updatedScore);
+  })();
 
   return (
-    <div className="bg-background-light dark:bg-background-dark min-h-screen text-gray-800 dark:text-gray-200">
+    <div className="h-screen flex flex-col bg-[#f5f7f6] text-gray-800 relative overflow-hidden">
 
-      {/* 🎊 CONFETTI */}
-      {runConfetti && (
-        <div className="fixed inset-0 z-[9999] pointer-events-none">
-          <Confetti
-            width={window.innerWidth}
-            height={window.innerHeight}
-            numberOfPieces={500}
-            gravity={0.3}
-            recycle={false}
-          />
+      {/* Background Orbs */}
+      <div className="absolute top-[-100px] left-[-100px] w-[300px] h-[300px] bg-[#d6c8f7] rounded-full opacity-20 blur-3xl"></div>
+      <div className="absolute bottom-[-120px] right-[-120px] w-[350px] h-[350px] bg-[#cfe8d5] rounded-full opacity-20 blur-3xl"></div>
+
+      {/* HEADER */}
+      <header className="bg-[#e5e7eb] shadow-sm relative z-10">
+        <div className="flex items-center justify-between px-8 py-4">
+          <div className="flex items-center gap-4">
+            <button
+              onClick={() => setSidebarOpen(!sidebarOpen)}
+              className="text-gray-700 text-2xl"
+            >
+              ☰
+            </button>
+            <h2 className="text-xl font-bold">SkillUp</h2>
+          </div>
+
+          <div className="flex gap-4">
+            <button className="px-4 py-2 bg-[#8D9977] text-white rounded-lg hover:bg-[#7C8669] transition">
+              Find Jobs
+            </button>
+            <button
+              onClick={() =>
+                navigate("/interview-simulation", { state: { jobRole } })
+              }
+              className="px-4 py-2 bg-[#8D9977] text-white rounded-lg hover:bg-[#7C8669] transition"
+            >
+              Interview Simulation
+            </button>
+          </div>
         </div>
+      </header>
+
+      {runConfetti && (
+        <Confetti width={window.innerWidth} height={window.innerHeight} />
       )}
 
-      {/* SVG Congrats Board */}
       {showCongrats && (
         <CongratsBoard
           fading={fadeCongrats}
@@ -198,47 +201,90 @@ const LearningPath = () => {
         />
       )}
 
-      {/* ===== EVERYTHING BELOW IS YOUR ORIGINAL DASHBOARD ===== */}
+      {/* MAIN */}
+      <div className="flex flex-1 overflow-hidden relative z-10">
 
-      <div className="flex justify-end p-4">
-        <button
-          onClick={() =>
-            navigate("/interview-simulation", { state: { jobRole } })
-          }
-          className="px-4 py-2 bg-primary text-white rounded-lg shadow hover:bg-primary/90"
+        {/* SIDEBAR */}
+        <div
+          className={`bg-white/80 backdrop-blur-md border-r border-gray-200 p-6 overflow-y-auto transition-all duration-300 h-full ${
+            sidebarOpen
+              ? "w-[360px]"
+              : "w-0 p-0 overflow-hidden border-r-0"
+          }`}
         >
-          🎤 Start Interview Simulation
-        </button>
-      </div>
+          <h3 className="text-xl font-bold mb-4">📊 Progress Dashboard</h3>
 
-      <div className="max-w-7xl mx-auto px-4 py-8 grid grid-cols-1 lg:grid-cols-3 gap-6">
+          <p className="text-sm text-gray-500">Resume Score</p>
+          <p className="text-3xl font-bold text-primary mb-4">
+            {updatedScore}%
+          </p>
 
-        {/* LEFT */}
-        <div className="lg:col-span-2 space-y-6">
-          <h2 className="text-3xl font-bold">
+          <div className="w-full bg-gray-300 h-3 rounded-full mb-2">
+            <div
+              className="bg-gradient-to-r from-[#8D9977] to-[#9ac5f4] h-3 rounded-full transition-all"
+              style={{ width: `${progressPercent}%` }}
+            />
+          </div>
+
+          <p className="text-sm text-gray-500 mb-4">
+            {completedCount} of {totalTasks} tasks completed
+          </p>
+
+          <div className="mt-4 p-4 rounded-xl bg-gradient-to-br from-green-50 to-green-100 border border-green-200 shadow-sm">
+            <p className="font-bold text-black-700">
+              {status.title}
+            </p>
+            <p className="text-sm mt-1">
+              {status.message}
+            </p>
+            <p className="text-xs mt-2 font-semibold">
+              {status.badge}
+            </p>
+          </div>
+
+          <br />
+
+          <div className="space-y-3">
+            {tasks.map((task, idx) => (
+              <div
+                key={idx}
+                className="flex items-center space-x-3 bg-gray-100 p-3 rounded-lg hover:bg-gray-200 transition"
+              >
+                <input
+                  type="checkbox"
+                  checked={task.completed}
+                  onChange={() => toggleTask(idx)}
+                />
+                <p className={task.completed ? "line-through text-gray-400" : ""}>
+                  {task.label}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* CONTENT */}
+        <div className="flex-1 px-10 py-8 overflow-y-auto transition-all duration-300">
+          <h2 className="text-3xl font-extrabold mb-6">
             Your Personalized Learning Path
           </h2>
-
-          {loading && (
-            <p className="text-gray-500">Loading learning recommendations...</p>
-          )}
 
           {!loading &&
             roadmap.map((item, idx) => (
               <div
                 key={idx}
-                className="bg-white dark:bg-background-dark/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow"
+                className="bg-white/90 backdrop-blur-sm p-6 rounded-2xl border border-gray-200 shadow-md hover:shadow-lg transition mb-6"
               >
-                <h3 className="text-2xl font-bold text-primary">
+                <h3 className="text-2xl font-bold text-gray-900">
                   {item.skill}
                 </h3>
 
-                <p className="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                  ⏱ Estimated time: {item.estimated_time}
+                <p className="text-sm text-gray-500 mt-1">
+                  ⏱ {item.estimated_time}
                 </p>
 
                 <div className="mt-4">
-                  <p className="font-semibold mb-1">📘 Recommended Courses</p>
+                  <p className="font-semibold mb-1">Recommended Courses:</p>
                   <ul className="list-disc ml-6 space-y-1">
                     {item.recommended_courses.map((course, i) => (
                       <li key={i}>
@@ -256,64 +302,11 @@ const LearningPath = () => {
                 </div>
 
                 <div className="mt-4">
-                  <p className="font-semibold mb-1">🛠 Mini Project</p>
+                  <p className="font-semibold mb-1">Mini Project:</p>
                   <p>{item.mini_project}</p>
                 </div>
               </div>
             ))}
-        </div>
-
-        {/* RIGHT */}
-        <div className="bg-white dark:bg-background-dark/60 p-6 rounded-lg border border-gray-200 dark:border-gray-700 shadow h-fit">
-          <h3 className="text-xl font-bold mb-4">📊 Progress Dashboard</h3>
-
-          <p className="text-sm text-gray-500">Resume Score</p>
-          <p className="text-3xl font-bold text-primary mb-4">
-            {updatedScore}%
-          </p>
-
-          <div className="w-full bg-gray-300 dark:bg-gray-700 h-3 rounded-full mb-2">
-            <div
-              className="bg-primary h-3 rounded-full transition-all"
-              style={{ width: `${progressPercent}%` }}
-            />
-          </div>
-
-          <p className="text-sm text-gray-500 mb-4">
-            {completedCount} of {totalTasks} tasks completed
-          </p>
-
-          <div className="mt-4 p-4 rounded-lg bg-green-50 dark:bg-green-900/20 border border-green-300 dark:border-green-700">
-            <p className="font-bold text-green-700 dark:text-green-300">
-              {status.title}
-            </p>
-            <p className="text-sm mt-1">
-              {status.message}
-            </p>
-            <p className="text-xs mt-2 font-semibold">
-              {status.badge}
-            </p>
-          </div>
-
-          <br />
-
-          <div className="space-y-3">
-            {tasks.map((task, idx) => (
-              <div
-                key={idx}
-                className="flex items-center space-x-3 bg-gray-100 dark:bg-gray-800 p-3 rounded"
-              >
-                <input
-                  type="checkbox"
-                  checked={task.completed}
-                  onChange={() => toggleTask(idx)}
-                />
-                <p className={task.completed ? "line-through text-gray-400" : ""}>
-                  {task.label}
-                </p>
-              </div>
-            ))}
-          </div>
         </div>
       </div>
     </div>

@@ -65,21 +65,43 @@ const Home = () => {
       <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
         <div className="w-full max-w-xl text-center">
 
-          {/* Header */}
+          {/* ===== Header ===== */}
           <div className="mb-8">
 
-            <h1 className="text-3xl md:text-4xl font-extrabold text-gray-900">
-              SkillUp
-            </h1>
-            <h2 className="mt-3 text-3xl font-bold text-gray-900">
+            <div className="flex items-center justify-center gap-3 mb-3">
+              
+              {/* SVG Icon */}
+              <svg viewBox="0 0 24 24" className="w-8 h-8">
+                <defs>
+                  <linearGradient id="gemGradient" x1="0" y1="0" x2="1" y2="1">
+                    <stop offset="0%" stopColor="#9ac5f4" />
+                    <stop offset="50%" stopColor="#d6c8f7" />
+                    <stop offset="100%" stopColor="#cfe8d5" />
+                  </linearGradient>
+                </defs>
+                <path
+                  d="M12 2 L15 9 L22 12 L15 15 L12 22 L9 15 L2 12 L9 9 Z"
+                  fill="url(#gemGradient)"
+                />
+              </svg>
+
+              {/* SkillUp Text */}
+              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+                SkillUp
+              </h1>
+
+            </div>
+
+            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white">
               Analyze Your Resume
             </h2>
+
             <p className="mt-2 font-bold text-gray-600">
               Upload your resume and enter your desired job role to get started.
             </p>
           </div>
 
-          {/* Card */}
+          {/* ===== Card ===== */}
           <div className="relative bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 shadow-[0_30px_80px_rgba(0,0,0,0.15)] p-8 space-y-6">
 
             {/* Upload Resume */}
@@ -138,7 +160,7 @@ const Home = () => {
                 transition-all duration-300
                 hover:bg-[#8D9977]
                 hover:shadow-lg
-                disabled:bg-[#CCD5AE]">
+                disabled:bg-[#A3B18A]">
 
               {loading ? "Analyzing..." : "Analyze"}
             </button>

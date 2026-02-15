@@ -90,6 +90,7 @@ const LandingPage = () => {
       <section className="relative w-full py-24 bg-white overflow-hidden">
 
         {/* Soft Background Orbs */}
+        <div className="absolute -bottom-40 -left-40 w-[400px] h-[400px] bg-blue-200 rounded-full blur-3xl opacity-40"></div>
         <div className="absolute -top-20 -right-20 w-[300px] h-[300px] bg-blue-100 rounded-full blur-3xl opacity-40"></div>
         <div className="absolute -bottom-20 right-0 w-[350px] h-[350px] bg-purple-100 rounded-full blur-3xl opacity-40"></div>
 
@@ -136,7 +137,6 @@ const LandingPage = () => {
 
         </div>
       </section>
-
 
       {/* ================= HOW IT WORKS ================= */}
       <section className="px-16 pt-16 pb-24 relative z-10">
