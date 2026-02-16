@@ -136,6 +136,48 @@ def learning_path():
         return jsonify({"roadmap": roadmap})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+    
+# ============================
+# 🤖 STUDY ASSISTANT ROUTE
+# ============================
+@app.route("/study-assistant", methods=["POST"])
+def study_assistant():
+    data = request.json or {}
+    messages = data.get("messages", [])
+
+    # Filter malformed messages (same safety as interview route)
+    clean_messages = [
+        m for m in messages
+        if isinstance(m, dict)
+        and m.get("role")
+        and m.get("content")
+        and isinstance(m.get("content"), str)
+    ]
+
+    full_messages = [
+        {
+            "role": "system",
+            "content": (
+                "You are a helpful AI study assistant. "
+                "Explain concepts clearly and practically. "
+                "Do NOT conduct interviews. "
+                "Do NOT ask structured interview questions. "
+                "Give direct helpful answers."
+            ),
+        }
+    ] + clean_messages
+
+    try:
+        response = client.responses.create(
+            model="gpt-5-nano",
+            input=full_messages
+        )
+
+        reply = response.output_text
+        return jsonify({"reply": reply})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 
 # ============================

@@ -62,6 +62,12 @@ const LearningPath = () => {
   const [runConfetti, setRunConfetti] = useState(false);
   const [sidebarOpen, setSidebarOpen] = useState(true);
 
+  const [showHelper, setShowHelper] = useState(false);
+  const [helperMessages, setHelperMessages] = useState([]);
+  const [helperInput, setHelperInput] = useState("");
+  const [helperLoading, setHelperLoading] = useState(false);
+
+
   useEffect(() => {
     fetch("http://localhost:5000/learning-path", {
       method: "POST",
@@ -89,6 +95,46 @@ const LearningPath = () => {
     const updated = [...tasks];
     updated[index].completed = !updated[index].completed;
     setTasks(updated);
+  };
+
+  const sendHelperMessage = async () => {
+      if (!helperInput.trim()) return;
+
+      const updated = [
+        ...helperMessages,
+        { role: "user", content: helperInput },
+      ];
+
+      setHelperMessages(updated);
+      setHelperInput("");
+      setHelperLoading(true);
+
+      try {
+        const res = await fetch("http://localhost:5000/study-assistant", {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            jobRole: "Study Assistant",
+            messages: updated,
+          }),
+        });
+
+        const data = await res.json();
+
+        if (data.reply) {
+          setHelperMessages([
+            ...updated,
+            { role: "assistant", content: data.reply },
+          ]);
+        }
+      } catch {
+        setHelperMessages([
+          ...updated,
+          { role: "assistant", content: "⚠️ AI unavailable." },
+        ]);
+      } finally {
+        setHelperLoading(false);
+      }
   };
 
   const completedCount = tasks.filter((t) => t.completed).length;
@@ -156,8 +202,9 @@ const LearningPath = () => {
     <div className="h-screen flex flex-col bg-[#f5f7f6] text-gray-800 relative overflow-hidden">
 
       {/* Background Orbs */}
-      <div className="absolute top-[-100px] left-[-100px] w-[300px] h-[300px] bg-[#d6c8f7] rounded-full opacity-20 blur-3xl"></div>
-      <div className="absolute bottom-[-120px] right-[-120px] w-[350px] h-[350px] bg-[#cfe8d5] rounded-full opacity-20 blur-3xl"></div>
+      <div className="absolute top-[-100px] left-[-100px] w-[300px] h-[300px] bg-[#d6c8f7] rounded-full opacity-40 blur-3xl z-0"></div>
+      <div className="absolute bottom-[-120px] right-[-120px] w-[350px] h-[350px] bg-[#cfe8d5] rounded-full opacity-40 blur-3xl z-0"></div>
+
 
       {/* HEADER */}
       <header className="bg-[#e5e7eb] shadow-sm relative z-10">
@@ -189,7 +236,15 @@ const LearningPath = () => {
       </header>
 
       {runConfetti && (
-        <Confetti width={window.innerWidth} height={window.innerHeight} />
+        <div className="fixed inset-0 z-[9999] pointer-events-none">
+          <Confetti
+            width={window.innerWidth}
+            height={window.innerHeight}
+            numberOfPieces={500}
+            gravity={0.3}
+            recycle={false}
+          />
+        </div>
       )}
 
       {showCongrats && (
@@ -202,16 +257,16 @@ const LearningPath = () => {
       )}
 
       {/* MAIN */}
-      <div className="flex flex-1 overflow-hidden relative z-10">
-
+      <div className="flex flex-1 overflow-hidden relative z-20">
         {/* SIDEBAR */}
         <div
-          className={`bg-white/80 backdrop-blur-md border-r border-gray-200 p-6 overflow-y-auto transition-all duration-300 h-full ${
+          className={`bg-white/80 backdrop-blur-md border-r border-gray-200 transition-all duration-300 h-full shrink-0 ${
             sidebarOpen
-              ? "w-[360px]"
+              ? "w-[360px] p-6 overflow-y-auto"
               : "w-0 p-0 overflow-hidden border-r-0"
           }`}
         >
+
           <h3 className="text-xl font-bold mb-4">📊 Progress Dashboard</h3>
 
           <p className="text-sm text-gray-500">Resume Score</p>
@@ -309,6 +364,77 @@ const LearningPath = () => {
             ))}
         </div>
       </div>
+    {/* ===== Floating SVG AI Button ===== */}
+      <button
+        onClick={() => setShowHelper(!showHelper)}
+        className="fixed bottom-6 right-6 z-50
+        w-16 h-16 rounded-full bg-white
+        shadow-xl border border-gray-200
+        flex items-center justify-center
+        hover:scale-110 transition
+        animate-pulse"
+      >
+        <svg viewBox="0 0 100 100" className="w-10 h-10">
+          <rect x="47" y="10" width="6" height="15" rx="2" fill="#78909C" />
+          <circle cx="50" cy="10" r="4" fill="#FF5252" />
+          <rect x="25" y="25" width="50" height="50" rx="10" fill="#B0BEC5" />
+          <rect x="35" y="35" width="30" height="20" rx="5" fill="#546E7A" />
+          <circle cx="43" cy="45" r="4" fill="#81D4FA" />
+          <circle cx="57" cy="45" r="4" fill="#81D4FA" />
+          <rect x="42" y="60" width="16" height="4" rx="2" fill="#FF5252" />
+          <rect x="15" y="35" width="10" height="30" rx="5" fill="#78909C" />
+          <rect x="75" y="35" width="10" height="30" rx="5" fill="#78909C" />
+          <rect x="35" y="75" width="10" height="15" rx="3" fill="#78909C" />
+          <rect x="55" y="75" width="10" height="15" rx="3" fill="#78909C" />
+        </svg>
+      </button>
+
+      {showHelper && (
+      <div className="fixed bottom-24 right-6 z-50
+        w-80 bg-white/95 backdrop-blur-xl
+        rounded-2xl shadow-2xl border border-gray-200
+        p-4 flex flex-col">
+
+        <h3 className="text-sm font-semibold mb-2 text-gray-800">
+          Doubt Assistant
+        </h3>
+
+        <div className="flex-1 overflow-y-auto text-sm space-y-2 mb-3 max-h-60">
+          {helperMessages.map((msg, i) => (
+            <div
+              key={i}
+              className={`p-2 rounded-lg ${
+                msg.role === "assistant"
+                  ? "bg-purple-100 text-purple-800"
+                  : "bg-pink-100 text-pink-800 text-right"
+              }`}
+            >
+              {msg.content}
+            </div>
+          ))}
+
+          {helperLoading && (
+            <div className="text-gray-400 text-xs">Thinking...</div>
+          )}
+        </div>
+
+        <div className="flex gap-2">
+          <input
+            value={helperInput}
+            onChange={(e) => setHelperInput(e.target.value)}
+            placeholder="Ask your doubt..."
+            className="flex-1 border rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-pink-200"
+          />
+          <button
+            onClick={sendHelperMessage}
+            className="bg-[#d6c8f7] text-gray-800 px-3 py-2 rounded-lg text-sm hover:opacity-80 transition"
+          >
+            Send
+          </button>
+        </div>
+      </div>
+    )}
+
     </div>
   );
 };
