@@ -8,8 +8,6 @@ import os
 import json
 from openai import OpenAI
 from dotenv import load_dotenv
-load_dotenv(override=True)
-
 
 # ============================
 # 🚀 APP SETUP
@@ -18,9 +16,9 @@ app = Flask(__name__)
 CORS(app)
 
 # 🔑 Load environment variables
-load_dotenv()
+load_dotenv(override=True)
+
 print("API KEY FOUND:", bool(os.getenv("OPENAI_API_KEY")))
-print("API KEY PREFIX:", os.getenv("OPENAI_API_KEY")[:7])
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -43,26 +41,12 @@ def analyze():
 
     try:
         text = extract_text_from_pdf(file)
-    except Exception as e:
-        return jsonify({"error": f"PDF extraction failed: {str(e)}"}), 500
-
-    try:
         resume_skills = extract_skills(text)
+        analysis_result = analyze_skills(resume_skills, job_role)
+        return jsonify(analysis_result)
+
     except Exception as e:
-        return jsonify({"error": f"Skill extraction failed: {str(e)}"}), 500
-
-    # ✅ Skill gap analysis
-    analysis_result = analyze_skills(resume_skills, job_role)
-
-    # --- DEBUG PRINT ---
-    print("\n=== DEBUG INFO ===")
-    print("Job Role:", job_role)
-    print("Resume Skills:", resume_skills)
-    print("Required Skills:", analysis_result["requiredSkills"])
-    print("Missing Skills:", analysis_result["missingSkills"])
-    print("===================\n")
-
-    return jsonify(analysis_result)
+        return jsonify({"error": str(e)}), 500
 
 
 # ============================
@@ -70,23 +54,18 @@ def analyze():
 # ============================
 @app.route("/interview", methods=["POST"])
 def interview():
-    print("RAW REQUEST JSON:", request.json)
-
     data = request.json or {}
     job_role = data.get("jobRole", "Software Engineer")
     messages = data.get("messages", [])
 
-    # 🟢 FIRST QUESTION (no OpenAI call)
     if len(messages) == 0:
         return jsonify({
             "reply": (
-                f"Welcome to your {job_role} interview. \n"
+                f"Welcome to your {job_role} interview.\n"
                 "First question: Can you briefly introduce yourself?"
             )
         })
 
-
-    # ✅ FIX 2: FILTER INVALID / MALFORMED MESSAGES
     clean_messages = [
         m for m in messages
         if isinstance(m, dict)
@@ -95,7 +74,6 @@ def interview():
         and isinstance(m.get("content"), str)
     ]
 
-    # System prompt
     full_messages = [
         {
             "role": "system",
@@ -109,19 +87,15 @@ def interview():
     ] + clean_messages
 
     try:
-        # ✅ USE RESPONSES API (matches test_openai.py)
         response = client.responses.create(
             model="gpt-5-nano",
             input=full_messages
         )
 
         reply = response.output_text
-
         return jsonify({"reply": reply})
 
     except Exception as e:
-        import traceback
-        traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 
@@ -136,7 +110,8 @@ def learning_path():
         return jsonify({"roadmap": roadmap})
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-    
+
+
 # ============================
 # 🤖 STUDY ASSISTANT ROUTE
 # ============================
@@ -145,7 +120,6 @@ def study_assistant():
     data = request.json or {}
     messages = data.get("messages", [])
 
-    # Filter malformed messages (same safety as interview route)
     clean_messages = [
         m for m in messages
         if isinstance(m, dict)
@@ -159,7 +133,7 @@ def study_assistant():
             "role": "system",
             "content": (
                 "You are a helpful AI study assistant. "
-                "Explain concepts clearly and practically. "
+                "Explain concepts clearly and practically and concise. "
                 "Do NOT conduct interviews. "
                 "Do NOT ask structured interview questions. "
                 "Give direct helpful answers."
@@ -175,6 +149,26 @@ def study_assistant():
 
         reply = response.output_text
         return jsonify({"reply": reply})
+
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+# ============================
+# 📅 HIRING CALENDAR ROUTE
+# ============================
+@app.route("/hiring-calendar", methods=["GET"])
+def hiring_calendar():
+    try:
+        data_path = os.path.join("utils", "hiring_calendar.json")
+
+        if not os.path.exists(data_path):
+            return jsonify({"error": "hiring_calendar.json not found"}), 404
+
+        with open(data_path, "r", encoding="utf-8") as f:
+            calendar_data = json.load(f)
+
+        return jsonify({"calendar": calendar_data})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500

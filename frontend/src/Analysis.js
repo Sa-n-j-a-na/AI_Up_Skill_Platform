@@ -24,7 +24,7 @@ const Analysis = () => {
   
 
   return (
-    <div className="relative min-h-screen overflow-hidden font-display text-gray-800 bg-[#f7f8fa]">
+    <div className="min-h-screen bg-gradient-to-br from-[#faf5ff] via-[#f3e8ff] to-[#e0f2fe] p-6">
 
       {/* ===== Soft background orbs ===== */}
       <div className="absolute -top-32 -left-32 w-[400px] h-[400px] rounded-full

@@ -1,0 +1,14 @@
+{
+  "January": [
+    { "company": "TCS", "category": "Campus Drive" },
+    { "company": "Infosys", "category": "Off-Campus Hiring" }
+  ],
+  "March": [
+    { "company": "Google", "category": "Internship" },
+    { "company": "Microsoft", "category": "SDE Hiring" }
+  ],
+  "August": [
+    { "company": "Accenture", "category": "Lateral Hiring" },
+    { "company": "Wipro", "category": "Campus Drive" }
+  ]
+}

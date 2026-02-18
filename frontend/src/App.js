@@ -5,6 +5,8 @@ import Home from "./Home";
 import Analysis from "./Analysis";
 import LearningPath from "./LearningPath";
 import InterviewSimulation from "./InterviewSimulation";
+import HiringCalendar from "./HiringCalendar";
+
 
 function App() {
   return (
@@ -15,6 +17,7 @@ function App() {
         <Route path="/analysis" element={<Analysis />} />
         <Route path="/learning-path" element={<LearningPath />} />
         <Route path="/interview-simulation" element={<InterviewSimulation />} />
+        <Route path="/hiring-calendar" element={<HiringCalendar />} />
       </Routes>
     </Router>
   );
