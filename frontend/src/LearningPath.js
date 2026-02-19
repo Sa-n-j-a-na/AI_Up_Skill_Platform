@@ -221,7 +221,7 @@ const LearningPath = () => {
 
           <div className="flex gap-4">
             <button 
-              onClick={() => navigate("/hiring-calendar")}
+              onClick={() => navigate(`/hiring-calendar?role=${jobRole}`)}
               className="px-4 py-2 bg-[#8D9977] text-white rounded-lg hover:bg-[#7C8669] transition">
               Find Jobs
             </button>

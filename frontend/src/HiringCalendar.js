@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from "react";
+import { useLocation } from "react-router-dom";
 
 const months = [
   { name: "January", icon: "ac_unit", color: "text-rose-400" },
@@ -16,18 +17,40 @@ const months = [
 ];
 
 const HiringCalendar = () => {
+  const location = useLocation();
+  const params = new URLSearchParams(location.search);
+  const jobRole = params.get("role") || "software engineer";
+
+
   const [calendarData, setCalendarData] = useState({});
   const [selectedMonth, setSelectedMonth] = useState(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+
   const detailsRef = useRef(null);
 
   useEffect(() => {
-    fetch("http://localhost:5000/hiring-calendar")
+    setLoading(true);
+    setError(null);
+
+    fetch(
+      `http://localhost:5000/hiring-calendar?role=${encodeURIComponent(jobRole)}`
+    )
       .then((res) => res.json())
       .then((data) => {
-        setCalendarData(data.calendar || {});
+        if (data.error) {
+          setError(data.error);
+        } else {
+          setCalendarData(data.calendar || {});
+        }
+        setLoading(false);
       })
-      .catch((err) => console.error(err));
-  }, []);
+      .catch((err) => {
+        console.error(err);
+        setError("Failed to fetch hiring data.");
+        setLoading(false);
+      });
+  }, [jobRole]);
 
   useEffect(() => {
     if (selectedMonth && detailsRef.current) {
@@ -36,7 +59,7 @@ const HiringCalendar = () => {
   }, [selectedMonth]);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-[#e0e7ff] via-[#f3e8ff] to-[#e0f2fe] px-8 py-10 text-gray-800 animate-fadeIn">
+    <div className="min-h-screen bg-gradient-to-br from-[#e0e7ff] via-[#f3e8ff] to-[#e0f2fe] px-8 py-10 text-gray-800">
 
       {/* PAGE TITLE */}
       <div className="text-center mb-14">
@@ -53,38 +76,54 @@ const HiringCalendar = () => {
         </p>
       </div>
 
-      {/* MONTH GRID */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
-        {months.map((month) => (
-          <button
-            key={month.name}
-            onClick={() => setSelectedMonth(month.name)}
-            className={`bg-white/80 backdrop-blur-md px-3 py-7 rounded-2xl shadow-md border 
-              transition-all duration-300 ease-out
-              hover:shadow-xl hover:-translate-y-1
-              ${
-                selectedMonth === month.name
-                  ? "scale-105 shadow-2xl border-indigo-300 bg-gradient-to-br from-white to-indigo-50"
-                  : ""
-              }`}
-          >
-            <div className="flex flex-col items-center gap-4">
-              <span
-                className={`material-symbols-outlined text-5xl ${month.color}`}
-              >
-                {month.icon}
-              </span>
+      {/* LOADING */}
+      {loading && (
+        <p className="text-center text-gray-600 text-lg">
+          Loading hiring data...
+        </p>
+      )}
 
-              <h2 className="text-sm md:text-base font-bold uppercase tracking-wide">
-                {month.name}
-              </h2>
-            </div>
-          </button>
-        ))}
-      </div>
+      {/* ERROR */}
+      {error && (
+        <p className="text-center text-red-500 text-lg">
+          {error}
+        </p>
+      )}
+
+      {/* MONTH GRID */}
+      {!loading && !error && (
+        <div className="grid grid-cols-2 md:grid-cols-4 gap-6 max-w-5xl mx-auto">
+          {months.map((month) => (
+            <button
+              key={month.name}
+              onClick={() => setSelectedMonth(month.name)}
+              className={`bg-white/80 backdrop-blur-md px-3 py-7 rounded-2xl shadow-md border 
+                transition-all duration-300 ease-out
+                hover:shadow-xl hover:-translate-y-1
+                ${
+                  selectedMonth === month.name
+                    ? "scale-105 shadow-2xl border-indigo-300 bg-gradient-to-br from-white to-indigo-50"
+                    : ""
+                }`}
+            >
+              <div className="flex flex-col items-center gap-4">
+                <span
+                  className={`material-symbols-outlined text-5xl ${month.color}`}
+                >
+                  {month.icon}
+                </span>
+
+                <h2 className="text-sm md:text-base font-bold uppercase tracking-wide">
+                  {month.name}
+                </h2>
+              </div>
+            </button>
+          ))}
+        </div>
+      )}
 
       {/* COMPANY DETAILS */}
-      {selectedMonth && (
+      {selectedMonth && !loading && !error && (
         <div ref={detailsRef} className="mt-24 max-w-4xl mx-auto">
 
           <h2 className="text-3xl font-extrabold text-center mb-3 text-black">
@@ -108,13 +147,24 @@ const HiringCalendar = () => {
                       {item.company}
                     </p>
                     <p className="text-sm text-gray-500 mt-1">
-                      {item.category}
+                      {item.role}
+                    </p>
+                    <p className="text-sm text-gray-500">
+                      {item.location}
+                    </p>
+                    <p className="text-sm text-gray-600 font-medium">
+                      {item.salary} 
                     </p>
                   </div>
 
-                  <span className="px-4 py-1 bg-gradient-to-r from-indigo-100 to-purple-100 text-indigo-700 rounded-full text-sm font-semibold shadow-sm">
-                    {item.category}
-                  </span>
+                  <a
+                    href={item.apply_link}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="px-4 py-2 bg-indigo-600 text-white rounded-lg text-sm font-semibold hover:bg-indigo-700 transition"
+                  >
+                    Apply
+                  </a>
                 </div>
               ))}
             </div>

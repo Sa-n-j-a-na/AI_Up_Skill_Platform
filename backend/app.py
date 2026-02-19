@@ -6,6 +6,8 @@ from model.skill_analyzer import analyze_skills
 from model.learning_path_gen import generate_learning_path
 import os
 import json
+import requests
+from datetime import datetime
 from openai import OpenAI
 from dotenv import load_dotenv
 
@@ -18,7 +20,8 @@ CORS(app)
 # 🔑 Load environment variables
 load_dotenv(override=True)
 
-print("API KEY FOUND:", bool(os.getenv("OPENAI_API_KEY")))
+print("OPENAI KEY FOUND:", bool(os.getenv("OPENAI_API_KEY")))
+print("JSEARCH KEY FOUND:", bool(os.getenv("JSEARCH_API_KEY")))
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
@@ -133,7 +136,7 @@ def study_assistant():
             "role": "system",
             "content": (
                 "You are a helpful AI study assistant. "
-                "Explain concepts clearly and practically and concise. "
+                "Explain concepts clearly and concisely in a proper structure. "
                 "Do NOT conduct interviews. "
                 "Do NOT ask structured interview questions. "
                 "Give direct helpful answers."
@@ -155,24 +158,82 @@ def study_assistant():
 
 
 # ============================
-# 📅 HIRING CALENDAR ROUTE
+# 📅 FAST INDIA + REMOTE HIRING CALENDAR
 # ============================
 @app.route("/hiring-calendar", methods=["GET"])
 def hiring_calendar():
     try:
-        data_path = os.path.join("utils", "hiring_calendar.json")
+        import requests
+        from datetime import datetime
 
-        if not os.path.exists(data_path):
-            return jsonify({"error": "hiring_calendar.json not found"}), 404
+        role = request.args.get("role", "software developer")
 
-        with open(data_path, "r", encoding="utf-8") as f:
-            calendar_data = json.load(f)
+        JSEARCH_API_KEY = os.getenv("JSEARCH_API_KEY")
 
-        return jsonify({"calendar": calendar_data})
+        if not JSEARCH_API_KEY:
+            return jsonify({"error": "JSEARCH_API_KEY not found"}), 500
+
+        url = "https://jsearch.p.rapidapi.com/search"
+
+        headers = {
+            "X-RapidAPI-Key": JSEARCH_API_KEY,
+            "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
+        }
+
+        # 🔥 SINGLE FAST QUERY
+        querystring = {
+            "query": f"{role} OR {role} internship OR {role} fresher",
+            "country": "IN",
+            "remote_jobs_only": "true",
+            "page": "1",
+            "num_pages": "1"
+        }
+
+        response = requests.get(url, headers=headers, params=querystring, timeout=60)
+        data = response.json()
+
+        jobs = data.get("data", [])[:30]  # 🔥 limit results for speed
+
+        calendar = {}
+
+        for job in jobs:
+            posted_date = job.get("job_posted_at_datetime_utc")
+            if not posted_date:
+                continue
+
+            try:
+                date_obj = datetime.fromisoformat(posted_date.replace("Z", ""))
+                month_name = date_obj.strftime("%B")
+            except:
+                continue
+
+            min_salary = job.get("job_min_salary")
+            max_salary = job.get("job_max_salary")
+            currency = job.get("job_salary_currency")
+            period = job.get("job_salary_period")
+
+            if min_salary and max_salary:
+                salary = f"{currency} {min_salary:,} - {max_salary:,} / {period}"
+            elif min_salary:
+                salary = f"{currency} {min_salary:,} / {period}"
+            else:
+                salary = "Not disclosed"
+
+            job_entry = {
+                "company": job.get("employer_name"),
+                "role": job.get("job_title"),
+                "location": job.get("job_city") or "Remote",
+                "category": job.get("job_employment_type"),
+                "salary": salary,
+                "apply_link": job.get("job_apply_link")
+            }
+
+            calendar.setdefault(month_name, []).append(job_entry)
+
+        return jsonify({"calendar": calendar})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
-
 
 # ============================
 # ▶️ RUN SERVER
