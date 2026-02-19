@@ -153,7 +153,7 @@ const HiringCalendar = () => {
                       {item.location}
                     </p>
                     <p className="text-sm text-gray-600 font-medium">
-                      {item.salary} 
+                      Salary: {item.salary} 
                     </p>
                   </div>
 
