@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useRef, useState, useCallback } from "react";
 import { useLocation } from "react-router-dom";
 
 const InterviewSimulation = () => {
@@ -10,9 +10,79 @@ const InterviewSimulation = () => {
   const [loading, setLoading] = useState(false);
   const [showPopup, setShowPopup] = useState(true);
 
+  // ── Voice states ──
+  const [isListening, setIsListening] = useState(false);
+  const [voiceSupported, setVoiceSupported] = useState(false);
+  const [voiceError, setVoiceError] = useState("");
+  const recognitionRef = useRef(null);
+
   const bottomRef = useRef(null);
 
-  // 🔹 Ask FIRST interview question automatically
+  // ── Check browser support & setup SpeechRecognition ──
+  useEffect(() => {
+    const SpeechRecognition =
+      window.SpeechRecognition || window.webkitSpeechRecognition;
+
+    if (!SpeechRecognition) {
+      setVoiceSupported(false);
+      return;
+    }
+
+    setVoiceSupported(true);
+
+    const recognition = new SpeechRecognition();
+    recognition.continuous = false;       // stop after first pause
+    recognition.interimResults = true;    // show live transcription
+    recognition.lang = "en-US";
+
+    recognition.onresult = (event) => {
+      let transcript = "";
+      for (let i = event.resultIndex; i < event.results.length; i++) {
+        transcript += event.results[i][0].transcript;
+      }
+      // Put transcript into input box (live update)
+      setInput(transcript);
+    };
+
+    recognition.onerror = (event) => {
+      const friendlyErrors = {
+        "not-allowed": "Microphone access denied. Please allow microphone permission.",
+        "no-speech": "No speech detected. Please try again.",
+        "network": "Network error. Please check your connection.",
+        "audio-capture": "No microphone found on this device.",
+      };
+      setVoiceError(friendlyErrors[event.error] || `Voice error: ${event.error}`);
+      setIsListening(false);
+    };
+
+    recognition.onend = () => {
+      setIsListening(false);
+    };
+
+    recognitionRef.current = recognition;
+
+    return () => {
+      recognition.abort();
+    };
+  }, []);
+
+  // ── Toggle voice recording ──
+  const toggleVoice = useCallback(() => {
+    if (!recognitionRef.current) return;
+
+    setVoiceError(""); // clear previous errors
+
+    if (isListening) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    } else {
+      setInput(""); // clear input before new recording
+      recognitionRef.current.start();
+      setIsListening(true);
+    }
+  }, [isListening]);
+
+  // ── Ask FIRST interview question automatically ──
   useEffect(() => {
     const startInterview = async () => {
       try {
@@ -35,14 +105,21 @@ const InterviewSimulation = () => {
     startInterview();
   }, [jobRole]);
 
-  // 🔹 Auto-scroll
+  // ── Auto-scroll ──
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, loading]);
 
-  // 🔹 Send message
+  // ── Send message ──
   const sendMessage = async () => {
     if (!input.trim()) return;
+
+    // Stop recording if still active
+    if (isListening && recognitionRef.current) {
+      recognitionRef.current.stop();
+      setIsListening(false);
+    }
+
     const updatedMessages = [...messages, { role: "user", content: input }];
     setMessages(updatedMessages);
     setInput("");
@@ -81,7 +158,6 @@ const InterviewSimulation = () => {
           40%          { transform: translateY(-6px); }
         }
 
-        /* 🔧 ONLY CHANGE: glow values softened — ring thinner, spread smaller, opacity lower */
         @keyframes glowPulse {
           0%,100% {
             box-shadow:
@@ -106,8 +182,17 @@ const InterviewSimulation = () => {
           to   { opacity:1; transform:scale(1) translateY(0); }
         }
 
-        .main-card { animation: glowPulse 5s ease-in-out infinite; }
+        /* Voice button pulse when listening */
+        @keyframes micPulse {
+          0%,100% { box-shadow: 0 0 0 0 rgba(239,68,68,0.5); }
+          50%      { box-shadow: 0 0 0 8px rgba(239,68,68,0); }
+        }
+        @keyframes micRipple {
+          0%   { transform: scale(1); opacity: 0.7; }
+          100% { transform: scale(1.8); opacity: 0; }
+        }
 
+        .main-card { animation: glowPulse 5s ease-in-out infinite; }
         .msg-bubble { animation: msgIn 0.3s cubic-bezier(0.16,1,0.3,1) both; }
 
         .send-btn {
@@ -133,6 +218,37 @@ const InterviewSimulation = () => {
           outline: none;
           border-color: #B7C7A1 !important;
           box-shadow: 0 0 0 3px rgba(183,199,161,0.22);
+        }
+
+        /* Voice button base style */
+        .voice-btn {
+          position: relative;
+          transition: transform 0.18s ease, background 0.2s ease;
+          flex-shrink: 0;
+        }
+        .voice-btn:hover:not(:disabled) {
+          transform: scale(1.08);
+        }
+        .voice-btn:disabled {
+          opacity: 0.4;
+          cursor: not-allowed;
+        }
+
+        /* Listening state */
+        .voice-btn.listening {
+          animation: micPulse 1.2s ease-in-out infinite;
+          background: #ef4444 !important;
+          border-color: #ef4444 !important;
+        }
+
+        /* Ripple ring around mic when active */
+        .mic-ripple {
+          position: absolute;
+          inset: -4px;
+          border-radius: 50%;
+          border: 2px solid rgba(239,68,68,0.5);
+          animation: micRipple 1.2s ease-out infinite;
+          pointer-events: none;
         }
 
         .popup-card { animation: popupIn 0.4s cubic-bezier(0.16,1,0.3,1) both; }
@@ -238,16 +354,77 @@ const InterviewSimulation = () => {
               <div ref={bottomRef} />
             </div>
 
-            {/* Input */}
+            {/* ── Voice error banner ── */}
+            {voiceError && (
+              <div className="mb-3 px-4 py-2 rounded-xl text-sm text-red-700 flex items-center gap-2"
+                style={{ background: "#fff0f0", border: "1px solid #fecaca" }}
+              >
+                <span>⚠️</span>
+                <span>{voiceError}</span>
+                <button
+                  onClick={() => setVoiceError("")}
+                  className="ml-auto text-red-400 hover:text-red-600 text-xs"
+                >
+                  ✕
+                </button>
+              </div>
+            )}
+
+            {/* ── Listening indicator ── */}
+            {isListening && (
+              <div className="mb-3 px-4 py-2 rounded-xl text-sm flex items-center gap-2"
+                style={{ background: "#fff5f5", border: "1px solid #fca5a5" }}
+              >
+                {/* animated waveform dots */}
+                <span className="dot-1 inline-block w-2 h-2 rounded-full bg-red-400" />
+                <span className="dot-2 inline-block w-2 h-2 rounded-full bg-red-400" />
+                <span className="dot-3 inline-block w-2 h-2 rounded-full bg-red-400" />
+                <span className="text-red-600 font-medium ml-1">Listening… speak now</span>
+                <span className="ml-auto text-xs text-red-400">Click 🎤 to stop</span>
+              </div>
+            )}
+
+            {/* Input row */}
             <div className="flex items-center gap-3">
+
+              {/* Text input */}
               <input
                 type="text"
                 value={input}
                 onChange={(e) => setInput(e.target.value)}
                 onKeyDown={(e) => e.key === "Enter" && sendMessage()}
-                placeholder="Type your answer..."
+                placeholder={isListening ? "Listening... speak now 🎤" : "Type your answer or use the mic "}
                 className="chat-input flex-1 px-4 py-3 rounded-xl border border-gray-300 focus:outline-none"
               />
+
+              {/* Voice button — only rendered if browser supports it */}
+              {voiceSupported && (
+                <button
+                  onClick={toggleVoice}
+                  disabled={loading}
+                  title={isListening ? "Stop recording" : "Start voice input"}
+                  className={`voice-btn w-12 h-12 rounded-xl flex items-center justify-center border-2 ${
+                    isListening
+                      ? "listening bg-red-500 border-red-500 text-white"
+                      : "bg-white border-gray-300 text-gray-600 hover:border-[#B7C7A1] hover:text-[#5a7a4a]"
+                  }`}
+                >
+                  {isListening && <span className="mic-ripple" />}
+                  {/* Mic SVG icon */}
+                  <svg
+                    width="20" height="20" viewBox="0 0 24 24" fill="none"
+                    stroke="currentColor" strokeWidth="2"
+                    strokeLinecap="round" strokeLinejoin="round"
+                  >
+                    <rect x="9" y="2" width="6" height="11" rx="3" />
+                    <path d="M5 10a7 7 0 0 0 14 0" />
+                    <line x1="12" y1="19" x2="12" y2="22" />
+                    <line x1="8" y1="22" x2="16" y2="22" />
+                  </svg>
+                </button>
+              )}
+
+              {/* Send button */}
               <button
                 onClick={sendMessage}
                 disabled={loading}
@@ -256,6 +433,13 @@ const InterviewSimulation = () => {
                 Send
               </button>
             </div>
+
+            {/* Voice not supported notice */}
+            {!voiceSupported && (
+              <p className="mt-2 text-xs text-gray-400 text-center">
+                🎤 Voice input is not supported in this browser. Try Chrome or Edge.
+              </p>
+            )}
 
           </div>
         </div>
@@ -316,6 +500,7 @@ const InterviewSimulation = () => {
                 { icon: "💬", text: "Answer naturally and honestly" },
                 { icon: "❓", text: "One question is asked at a time" },
                 { icon: "✅", text: "You'll receive short feedback" },
+                { icon: "🎤", text: "Use the mic button for voice input" },
               ].map((item, i) => (
                 <li key={i} className="popup-li">{item.icon} {item.text}</li>
               ))}
