@@ -16,13 +16,10 @@ const Home = () => {
       alert("Please upload a resume and enter a job role.");
       return;
     }
-
     setLoading(true);
-
     const formData = new FormData();
     formData.append("file", resume);
     formData.append("job_role", jobRole);
-
     try {
       const res = await fetch("http://localhost:5000/analyze", {
         method: "POST",
@@ -40,6 +37,102 @@ const Home = () => {
   return (
     <div className="relative min-h-screen overflow-hidden bg-[#f6efe8] font-display text-gray-800">
 
+      <style>{`
+        @keyframes fadeUp {
+          from { opacity: 0; transform: translateY(20px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes pulse-btn {
+          0%,100% { box-shadow: 0 12px 24px rgba(163,177,138,0.38); }
+          50%      { box-shadow: 0 12px 34px rgba(163,177,138,0.58); }
+        }
+        @keyframes spin {
+          to { transform: rotate(360deg); }
+        }
+        @keyframes glowPulse {
+          0%,100% {
+            box-shadow:
+              0 30px 80px rgba(0,0,0,0.13),
+              0 0 0 1.5px rgba(210,190,140,0.55),
+              0 0 18px 4px rgba(230,210,160,0.28),
+              0 0 40px 8px rgba(200,185,140,0.14);
+          }
+          50% {
+            box-shadow:
+              0 30px 80px rgba(0,0,0,0.13),
+              0 0 0 1.5px rgba(220,200,150,0.75),
+              0 0 24px 6px rgba(230,215,170,0.38),
+              0 0 48px 10px rgba(210,195,150,0.18);
+          }
+        }
+        @keyframes shimmerTitle {
+          0%   { background-position: -500px 0; }
+          100% { background-position:  500px 0; }
+        }
+
+        .fade-1 { animation: fadeUp 0.65s cubic-bezier(0.16,1,0.3,1) 0.05s both; }
+        .fade-2 { animation: fadeUp 0.65s cubic-bezier(0.16,1,0.3,1) 0.18s both; }
+        .fade-3 { animation: fadeUp 0.65s cubic-bezier(0.16,1,0.3,1) 0.30s both; }
+        .fade-4 { animation: fadeUp 0.65s cubic-bezier(0.16,1,0.3,1) 0.42s both; }
+
+        .card-glow {
+          animation: glowPulse 4s ease-in-out infinite;
+        }
+
+        .skillup-title {
+          background: linear-gradient(
+            90deg,
+            #1f2a1f 0%,
+            #5a7a4a 30%,
+            #9ac5f4 55%,
+            #d6c8f7 70%,
+            #1f2a1f 100%
+          );
+          background-size: 500px auto;
+          -webkit-background-clip: text;
+          -webkit-text-fill-color: transparent;
+          background-clip: text;
+          animation: shimmerTitle 5s linear infinite;
+        }
+
+        .upload-zone {
+          transition: background 0.2s ease, border-color 0.2s ease;
+        }
+        .upload-zone:hover {
+          background: rgba(183,199,161,0.40) !important;
+          border-color: #8da87a !important;
+        }
+
+        .role-input {
+          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        }
+        .role-input:focus {
+          outline: none;
+          border-color: #B7C7A1 !important;
+          box-shadow: 0 0 0 3px rgba(183,199,161,0.25);
+        }
+
+        .analyze-btn {
+          transition: background 0.2s ease, transform 0.18s ease, box-shadow 0.2s ease;
+          animation: pulse-btn 2.8s ease-in-out infinite;
+        }
+        .analyze-btn:hover:not(:disabled) {
+          background: #8D9977 !important;
+          transform: translateY(-2px);
+          animation: none;
+          box-shadow: 0 16px 36px rgba(163,177,138,0.50) !important;
+        }
+        .analyze-btn:active:not(:disabled) {
+          transform: translateY(0);
+        }
+        .analyze-btn:disabled {
+          opacity: 0.8;
+          cursor: not-allowed;
+          animation: none;
+        }
+        .spin { animation: spin 0.85s linear infinite; }
+      `}</style>
+
       {/* ===== Layered textured background ===== */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#ffe9f0] via-[#f3e8dd] to-[#efe1d3]" />
       <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_20%_15%,#ffffff_0%,transparent_45%),radial-gradient(circle_at_80%_25%,#ffffff_0%,transparent_50%)]" />
@@ -52,7 +145,6 @@ const Home = () => {
           transform="translate(100 100)"
         />
       </svg>
-
       <svg className="absolute bottom-0 right-0 w-64 opacity-20" viewBox="0 0 200 200">
         <path
           fill="#9ac5f4"
@@ -68,9 +160,7 @@ const Home = () => {
           {/* ===== Header ===== */}
           <div className="mb-8">
 
-            <div className="flex items-center justify-center gap-3 mb-3">
-              
-              {/* SVG Icon */}
+            <div className="fade-1 flex items-center justify-center gap-3 mb-3">
               <svg viewBox="0 0 24 24" className="w-8 h-8">
                 <defs>
                   <linearGradient id="gemGradient" x1="0" y1="0" x2="1" y2="1">
@@ -85,24 +175,22 @@ const Home = () => {
                 />
               </svg>
 
-              {/* SkillUp Text */}
-              <h1 className="text-3xl font-bold text-gray-900 dark:text-white">
+              <h1 className="text-3xl font-bold skillup-title">
                 SkillUp
               </h1>
-
             </div>
 
-            <h2 className="text-3xl md:text-4xl font-extrabold text-gray-900 dark:text-white">
+            <h2 className="fade-2 text-3xl md:text-4xl font-extrabold text-gray-900">
               Analyze Your Resume
             </h2>
 
-            <p className="mt-2 font-bold text-gray-600">
+            <p className="fade-3 mt-2 font-bold text-gray-600">
               Upload your resume and enter your desired job role to get started.
             </p>
           </div>
 
           {/* ===== Card ===== */}
-          <div className="relative bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 shadow-[0_30px_80px_rgba(0,0,0,0.15)] p-8 space-y-6">
+          <div className="card-glow fade-4 relative bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 shadow-[0_30px_80px_rgba(0,0,0,0.15)] p-8 space-y-6">
 
             {/* Upload Resume */}
             <div className="text-left">
@@ -110,16 +198,16 @@ const Home = () => {
                 Upload Resume
               </label>
 
-              <label className="flex flex-col items-center justify-center rounded-2xl
+              <label className="upload-zone flex flex-col items-center justify-center rounded-2xl
                 border-2 border-dashed border-[#B7C7A1]
                 bg-[#B7C7A1]/30
                 p-10 cursor-pointer transition hover:bg-[#B7C7A1]/40">
 
                 <span className="text-gray-700 text-sm">
-                  Upload a file or drag and drop
+                  {resume ? `✓  ${resume.name}` : "Upload a file or drag and drop"}
                 </span>
                 <span className="text-xs text-gray-500 mt-1">
-                  PDF, DOCX up to 10MB
+                  {resume ? "Click to change file" : "PDF, DOCX up to 10MB"}
                 </span>
 
                 <input
@@ -128,12 +216,6 @@ const Home = () => {
                   onChange={handleFileChange}
                 />
               </label>
-
-              {resume && (
-                <p className="mt-2 text-xs text-gray-500">
-                  Selected file: {resume.name}
-                </p>
-              )}
             </div>
 
             {/* Job Role */}
@@ -146,7 +228,7 @@ const Home = () => {
                 value={jobRole}
                 onChange={handleRoleChange}
                 placeholder="e.g., Full Stack Developer"
-                className="w-full rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#B7C7A1]"
+                className="role-input w-full rounded-xl border border-gray-300 px-4 py-3 focus:outline-none focus:ring-2 focus:ring-[#B7C7A1]"
               />
             </div>
 
@@ -154,7 +236,7 @@ const Home = () => {
             <button
               onClick={handleAnalyze}
               disabled={loading}
-              className="group relative w-full overflow-hidden rounded-2xl py-4 font-bold text-white
+              className="analyze-btn group relative w-full overflow-hidden rounded-2xl py-4 font-bold text-white
                 bg-[#A3B18A]
                 shadow-[0_12px_24px_rgba(183,199,161,0.35)]
                 transition-all duration-300
@@ -162,7 +244,15 @@ const Home = () => {
                 hover:shadow-lg
                 disabled:bg-[#A3B18A]">
 
-              {loading ? "Analyzing..." : "Analyze"}
+              {loading ? (
+                <span className="flex items-center justify-center gap-2">
+                  <svg className="spin" width="18" height="18" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="10" stroke="rgba(255,255,255,0.3)" strokeWidth="3"/>
+                    <path d="M12 2a10 10 0 0 1 10 10" stroke="white" strokeWidth="3" strokeLinecap="round"/>
+                  </svg>
+                  Analyzing...
+                </span>
+              ) : "Analyze"}
             </button>
 
           </div>
