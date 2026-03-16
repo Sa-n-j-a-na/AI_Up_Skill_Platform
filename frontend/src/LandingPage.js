@@ -1,10 +1,18 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
+const TYPEWRITER_TEXT =
+  "Drop your resume, find out exactly where you stand, and get a personalized roadmap to bridge the gap — powered by AI built for your career.";
+
 const LandingPage = () => {
   const navigate = useNavigate();
   const [visibleCards, setVisibleCards] = useState([]);
   const cardRefs = useRef([]);
+
+  // ── Typewriter state ──
+  const [displayed, setDisplayed] = useState("");
+  const [typewriterDone, setTypewriterDone] = useState(false);
+  const indexRef = useRef(0);
 
   // Cards fade+rise in when they scroll into view
   useEffect(() => {
@@ -22,6 +30,25 @@ const LandingPage = () => {
       return obs;
     });
     return () => observers.forEach((obs) => obs && obs.disconnect());
+  }, []);
+
+  // ── Typewriter effect — starts after hero h1 animation (≈0.95s delay) ──
+  useEffect(() => {
+    const startDelay = setTimeout(() => {
+      const interval = setInterval(() => {
+        indexRef.current += 1;
+        setDisplayed(TYPEWRITER_TEXT.slice(0, indexRef.current));
+
+        if (indexRef.current >= TYPEWRITER_TEXT.length) {
+          clearInterval(interval);
+          setTypewriterDone(true);
+        }
+      }, 22); // speed: lower = faster
+
+      return () => clearInterval(interval);
+    }, 950); // wait for h1 fade-up to finish
+
+    return () => clearTimeout(startDelay);
   }, []);
 
   const cards = [
@@ -107,8 +134,27 @@ const LandingPage = () => {
           to   { opacity: 1; transform: translateY(0); }
         }
         .hero-h1  { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.15s both; }
-        .hero-p   { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.3s both; }
         .hero-btn { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.45s both; }
+
+        /* ── Typewriter cursor blink ── */
+        @keyframes blink {
+          0%, 100% { opacity: 1; }
+          50%       { opacity: 0; }
+        }
+        .tw-cursor {
+          display: inline-block;
+          width: 2px;
+          height: 1.1em;
+          background: rgba(255,255,255,0.85);
+          margin-left: 2px;
+          vertical-align: text-bottom;
+          border-radius: 1px;
+          animation: blink 0.75s step-end infinite;
+        }
+        .tw-cursor.done {
+          animation: none;
+          opacity: 0;
+        }
 
         /* ── Shimmer on hero title ── */
         @keyframes shimmer {
@@ -205,7 +251,7 @@ const LandingPage = () => {
         .check-bullet:hover { transform: scale(1.15); }
       `}</style>
 
-      {/* ===== Aesthetic Pastel Orbs — now gently floating ===== */}
+      {/* ===== Aesthetic Pastel Orbs ===== */}
       <div className="orb-a absolute -top-40 -left-40 w-[400px] h-[400px] bg-pink-200 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
       <div className="orb-b absolute top-20 right-[-150px] w-[350px] h-[350px] bg-blue-200 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
       <div className="orb-c absolute bottom-20 left-20 w-[300px] h-[300px] bg-green-200 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
@@ -214,7 +260,6 @@ const LandingPage = () => {
       {/* ================= HEADER ================= */}
       <header className="relative z-10">
         <div className="flex items-center justify-between px-12 py-6">
-          {/* LEFT: Logo */}
           <div className="flex items-center gap-3">
             <svg viewBox="0 0 24 24" className="w-7 h-7">
               <defs>
@@ -232,7 +277,6 @@ const LandingPage = () => {
             <h2 className="text-2xl font-bold tracking-tight">SkillUp</h2>
           </div>
 
-          {/* RIGHT: Get Started Button */}
           <button
             onClick={() => navigate("/analyze")}
             className="cta-pulse h-11 px-6 rounded-lg bg-[#B7C7A1] text-[#0f1c25] font-bold shadow-lg"
@@ -240,8 +284,6 @@ const LandingPage = () => {
             Get Started
           </button>
         </div>
-
-        {/* Divider */}
         <div className="w-full border-b border-gray-300"></div>
       </header>
 
@@ -260,10 +302,10 @@ const LandingPage = () => {
               <span className="shimmer-word">Career Potential</span>
             </h1>
 
-            <p className="hero-p mt-4 text-gray-200 text-lg">
-              Upload your resume and instantly discover your missing skills,
-              personalized learning roadmap, and interview readiness score —
-              powered by intelligent AI models.
+            {/* ── Typewriter paragraph ── */}
+            <p className="mt-4 text-gray-200 text-lg min-h-[5rem]">
+              {displayed}
+              <span className={`tw-cursor${typewriterDone ? " done" : ""}`} />
             </p>
 
             <button
@@ -278,31 +320,28 @@ const LandingPage = () => {
 
       {/* ================= AI INSIGHT SECTION ================= */}
       <section className="relative w-full py-24 bg-white overflow-hidden">
-
-        {/* Soft Background Orbs */}
         <div className="orb-b absolute -bottom-40 -left-40 w-[400px] h-[400px] bg-blue-200 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
         <div className="orb-a absolute -top-20 -right-20 w-[300px] h-[300px] bg-blue-100 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
         <div className="orb-c absolute -bottom-20 right-0 w-[350px] h-[350px] bg-purple-100 rounded-full blur-3xl opacity-40 pointer-events-none"></div>
 
         <div className="relative z-10 max-w-7xl mx-auto px-16 grid md:grid-cols-2 gap-16 items-center">
-
-          {/* LEFT CONTENT */}
           <div>
             <h2 className="text-4xl font-bold text-[#0f1c25] leading-tight">
               Get AI-Driven Career Insights in Minutes
             </h2>
 
             <p className="mt-6 text-gray-600 text-lg leading-relaxed">
-              SkillUp transforms your resume into actionable intelligence —
-              identifying skill gaps, evaluating job readiness, and building
-              a personalized learning roadmap powered by intelligent AI models.
+              SkillUp turns your resume into a career action plan — pinpointing
+              the exact skills you're missing, building a personalized learning
+              roadmap, and preparing you for interviews with AI-powered simulations.
             </p>
 
             <ul className="mt-8 space-y-4 text-gray-700">
               {[
-                "Clear identification of your strengths and missing skills",
-                "Instant comparison with industry job role requirements",
-                "Personalized learning path and interview preparation guidance",
+                "Instant breakdown of your strengths and skill gaps",
+                "Accurate comparison against real-world job role skill requirements",
+                "Structured learning roadmap with recommended courses and projects",
+                "AI-powered interview simulation with real-time question and feedback",
               ].map((text, i) => (
                 <li key={i} className="check-bullet flex items-start gap-3">
                   <span
@@ -323,7 +362,6 @@ const LandingPage = () => {
             </ul>
           </div>
 
-          {/* RIGHT IMAGE */}
           <div>
             <img
               src="https://images.unsplash.com/photo-1551836022-d5d88e9218df"
@@ -355,7 +393,6 @@ const LandingPage = () => {
                   : "0s",
               }}
             >
-              {/* Icon box */}
               <div
                 className="card-icon"
                 style={{
@@ -377,7 +414,6 @@ const LandingPage = () => {
                 {card.desc}
               </p>
 
-              {/* Accent line — expands on hover */}
               <div
                 className="accent-line"
                 style={{
