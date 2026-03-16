@@ -9,21 +9,11 @@ const Analysis = () => {
   const [showCongrats, setShowCongrats] = React.useState(false);
   const [animatedScore, setAnimatedScore] = React.useState(0);
 
-  // ── Score card category animations ──
-  const [animatedCategories, setAnimatedCategories] = React.useState({
-    skillsMatch: 0,
-    skillDepth: 0,
-    completeness: 0,
-    jobReadiness: 0,
-  });
-
   // ✅ All hooks before early return
   React.useEffect(() => {
     if (!result) return;
     const { score } = result;
     if (score === 100) setShowCongrats(true);
-
-    // Animate overall score ring
     let start = 0;
     const step = Math.ceil(score / 40);
     const timer = setInterval(() => {
@@ -35,44 +25,7 @@ const Analysis = () => {
         setAnimatedScore(start);
       }
     }, 30);
-
     return () => clearInterval(timer);
-  }, [result]);
-
-  // ── Animate score card category bars ──
-  React.useEffect(() => {
-    if (!result) return;
-    const { score, resumeSkills } = result;
-
-    // Compute category scores
-    const skillsMatch   = score; // same as overall match %
-    const skillDepth    = Math.min(100, Math.round((resumeSkills.length / 15) * 100)); // more skills = deeper
-    const completeness  = resumeSkills.length >= 5
-      ? Math.min(100, Math.round(60 + (resumeSkills.length / 20) * 40))
-      : Math.round((resumeSkills.length / 5) * 60);
-    const jobReadiness  = Math.round(
-      (skillsMatch * 0.5) + (skillDepth * 0.25) + (completeness * 0.25)
-    );
-
-    const targets = { skillsMatch, skillDepth, completeness, jobReadiness };
-
-    // Animate each bar
-    let frame = 0;
-    const totalFrames = 45;
-    const interval = setInterval(() => {
-      frame++;
-      const progress = Math.min(frame / totalFrames, 1);
-      const ease = 1 - Math.pow(1 - progress, 3); // ease-out cubic
-      setAnimatedCategories({
-        skillsMatch:  Math.round(targets.skillsMatch  * ease),
-        skillDepth:   Math.round(targets.skillDepth   * ease),
-        completeness: Math.round(targets.completeness * ease),
-        jobReadiness: Math.round(targets.jobReadiness * ease),
-      });
-      if (frame >= totalFrames) clearInterval(interval);
-    }, 22);
-
-    return () => clearInterval(interval);
   }, [result]);
 
   if (!result) {
@@ -89,56 +42,10 @@ const Analysis = () => {
     if (s >= 80) return { color: "#4a9e6a", bg: "#f0faf4", label: "Excellent" };
     if (s >= 60) return { color: "#4a8fa8", bg: "#f0f8fa", label: "Good" };
     if (s >= 40) return { color: "#c4882a", bg: "#fdf6ec", label: "Fair" };
-    return             { color: "#c46a6a", bg: "#fdf2f2", label: "Needs Work" };
+    return       { color: "#c46a6a", bg: "#fdf2f2", label: "Needs Work" };
   };
-  const scoreInfo   = getScoreInfo(score);
+  const scoreInfo = getScoreInfo(score);
   const matchedSkills = requiredSkills.filter((s) => !missingSkills.includes(s));
-
-  // ── Score Card helpers ──
-  const getCategoryColor = (val) => {
-    if (val >= 80) return { bar: "#4a9e6a", text: "#2e7a4a", bg: "#f0faf4", badge: "Excellent" };
-    if (val >= 60) return { bar: "#4a8fa8", text: "#2a5a7a", bg: "#f0f5fa", badge: "Good" };
-    if (val >= 40) return { bar: "#c4882a", text: "#7a4e10", bg: "#fdf6ec", badge: "Fair" };
-    return               { bar: "#c46a6a", text: "#7a2a2a", bg: "#fdf2f2", badge: "Low" };
-  };
-
-  const overallScoreCard = Math.round(
-    (animatedCategories.skillsMatch  * 0.50) +
-    (animatedCategories.skillDepth   * 0.20) +
-    (animatedCategories.completeness * 0.15) +
-    (animatedCategories.jobReadiness * 0.15)
-  );
-
-  const categories = [
-    {
-      key:   "skillsMatch",
-      label: "Skills Match",
-      icon:  "🎯",
-      val:   animatedCategories.skillsMatch,
-      desc:  "How well your skills match the job requirements",
-    },
-    {
-      key:   "skillDepth",
-      label: "Skill Depth",
-      icon:  "📚",
-      val:   animatedCategories.skillDepth,
-      desc:  "Breadth and volume of skills detected in your resume",
-    },
-    {
-      key:   "completeness",
-      label: "Profile Completeness",
-      icon:  "📋",
-      val:   animatedCategories.completeness,
-      desc:  "How complete your skill profile appears to recruiters",
-    },
-    {
-      key:   "jobReadiness",
-      label: "Job Readiness",
-      icon:  "🚀",
-      val:   animatedCategories.jobReadiness,
-      desc:  "Overall readiness score combining all categories",
-    },
-  ];
 
   return (
     <div style={{ minHeight: "100vh", background: "#f5f7f5", position: "relative", overflowX: "hidden" }}>
@@ -162,18 +69,6 @@ const Analysis = () => {
           from { width:0%; }
           to   { width:var(--bar-w); }
         }
-        @keyframes scoreCardIn {
-          from { opacity:0; transform:translateY(20px) scale(0.97); }
-          to   { opacity:1; transform:translateY(0) scale(1); }
-        }
-        @keyframes bigRingDraw {
-          from { stroke-dashoffset: 408; }
-          to   { stroke-dashoffset: var(--big-ring-end); }
-        }
-        @keyframes shimmerBadge {
-          0%   { background-position: -200px 0; }
-          100% { background-position:  200px 0; }
-        }
 
         .orb-a { animation: floatA 8s ease-in-out infinite; }
         .orb-b { animation: floatB 10s ease-in-out 2s infinite; }
@@ -185,11 +80,7 @@ const Analysis = () => {
         .card-4   { animation: scaleIn 0.55s cubic-bezier(0.16,1,0.3,1) 0.38s both; }
         .card-5   { animation: scaleIn 0.55s cubic-bezier(0.16,1,0.3,1) 0.48s both; }
 
-        /* Score Card gets its own staggered animation */
-        .card-scorecard { animation: scoreCardIn 0.6s cubic-bezier(0.16,1,0.3,1) 0.55s both; }
-
         .score-ring { animation: ringDraw 1.1s cubic-bezier(0.16,1,0.3,1) 0.25s both; }
-        .big-score-ring { animation: bigRingDraw 1.4s cubic-bezier(0.16,1,0.3,1) 0.6s both; }
         .bar-fill   { animation: barGrow  1s   cubic-bezier(0.16,1,0.3,1) 0.4s  both; }
 
         .s-card {
@@ -243,39 +134,9 @@ const Analysis = () => {
           display:flex; align-items:center; justify-content:center; font-size:17px;
           flex-shrink:0;
         }
-
-        /* ── Score Card specific ── */
-        .sc-category-bar {
-          height: 8px;
-          border-radius: 99px;
-          background: #edeee9;
-          overflow: hidden;
-          flex: 1;
-        }
-        .sc-category-fill {
-          height: 100%;
-          border-radius: 99px;
-          transition: width 0.05s linear;
-        }
-        .sc-badge {
-          font-size: 10px;
-          font-weight: 700;
-          padding: 2px 8px;
-          border-radius: 99px;
-          letter-spacing: 0.04em;
-          white-space: nowrap;
-        }
-        .sc-grade-ring {
-          filter: drop-shadow(0 4px 12px rgba(0,0,0,0.10));
-        }
-        .sc-divider {
-          height: 1px;
-          background: linear-gradient(90deg, transparent, #e4eae0, transparent);
-          margin: 18px 0;
-        }
       `}</style>
 
-      {/* ── Very subtle orbs ── */}
+      {/* ── Very subtle orbs, much less prominent ── */}
       <div className="orb-a" style={{
         position:"absolute", top:-80, left:-80,
         width:320, height:320, borderRadius:"50%",
@@ -291,7 +152,9 @@ const Analysis = () => {
 
       <main style={{ maxWidth:1080, margin:"0 auto", padding:"36px 24px 60px" }}>
 
-        {/* ══════════ HEADER ══════════ */}
+        {/* ══════════════════════════════════════
+            HEADER BOX  ← new boxed header
+        ══════════════════════════════════════ */}
         <div className="fade-up s-card" style={{
           padding:"24px 28px", marginBottom:24,
           display:"flex", alignItems:"center",
@@ -299,6 +162,7 @@ const Analysis = () => {
           borderLeft:"4px solid #B7C7A1",
         }}>
           <div>
+            {/* Breadcrumb */}
             <div style={{ display:"flex", alignItems:"center", gap:6,
               fontSize:12, color:"#9aaa8a", marginBottom:6 }}>
               <span style={{ cursor:"pointer", transition:"color 0.2s" }}
@@ -352,7 +216,9 @@ const Analysis = () => {
           </button>
         </div>
 
-        {/* ══════════ SCORE BANNER ══════════ */}
+        {/* ══════════════════════════════════════
+            SCORE BANNER
+        ══════════════════════════════════════ */}
         <div className="card-1 s-card" style={{
           padding:"28px 32px", marginBottom:20,
           background:"#fff",
@@ -441,7 +307,9 @@ const Analysis = () => {
           </div>
         </div>
 
-        {/* ══════════ THREE SKILL CARDS ══════════ */}
+        {/* ══════════════════════════════════════
+            THREE SKILL CARDS
+        ══════════════════════════════════════ */}
         <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:16, marginBottom:16 }}
           className="grid-3">
           <style>{`
@@ -523,8 +391,10 @@ const Analysis = () => {
           </div>
         </div>
 
-        {/* ══════════ MATCH BREAKDOWN ══════════ */}
-        <div className="card-5 s-card" style={{ padding:24, marginBottom:20 }}>
+        {/* ══════════════════════════════════════
+            BREAKDOWN BAR
+        ══════════════════════════════════════ */}
+        <div className="card-5 s-card" style={{ padding:24, marginBottom:28 }}>
           <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:14 }}>
             <div className="icon-box" style={{ background:"#f4f8f0", border:"1px solid #c4d8a8" }}>📊</div>
             <div>
@@ -556,191 +426,9 @@ const Analysis = () => {
           </div>
         </div>
 
-        {/* ══════════════════════════════════════════════════════
-            ✨ AI RESUME SCORE CARD  — NEW SECTION
-        ══════════════════════════════════════════════════════ */}
-        <div className="card-scorecard s-card" style={{
-          padding: "28px 32px",
-          marginBottom: 28,
-          background: "linear-gradient(135deg, #fafcf8 0%, #f5f8ff 50%, #faf8ff 100%)",
-          borderTop: "3px solid #7c9fd4",
-          position: "relative",
-          overflow: "hidden",
-        }}>
-
-          {/* Subtle background orb */}
-          <div style={{
-            position:"absolute", top:-60, right:-60,
-            width:220, height:220, borderRadius:"50%",
-            background:"radial-gradient(circle, rgba(124,159,212,0.08), transparent 70%)",
-            pointerEvents:"none",
-          }} />
-
-          {/* Section header */}
-          <div style={{ display:"flex", alignItems:"center", gap:10, marginBottom:6 }}>
-            <div className="icon-box" style={{ background:"#eef3ff", border:"1px solid #b0c4f0", fontSize:18 }}>
-              🏆
-            </div>
-            <div>
-              <div style={{ fontSize:15, fontWeight:800, color:"#1a2a3a" }}>AI Resume Score Card</div>
-              <div style={{ fontSize:11, color:"#8a9aaa" }}>Comprehensive profile evaluation across 4 dimensions</div>
-            </div>
-            {/* Overall score badge */}
-            <div style={{ marginLeft:"auto", textAlign:"center" }}>
-              <div style={{
-                background: getCategoryColor(overallScoreCard).bg,
-                border: `1.5px solid ${getCategoryColor(overallScoreCard).bar}55`,
-                borderRadius: 12, padding: "6px 16px",
-              }}>
-                <div style={{ fontSize:22, fontWeight:900, color: getCategoryColor(overallScoreCard).bar, lineHeight:1 }}>
-                  {overallScoreCard}
-                </div>
-                <div style={{ fontSize:9, color:"#9aaa8a", fontWeight:700, letterSpacing:"0.06em", marginTop:2 }}>
-                  OVERALL
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <div className="sc-divider" />
-
-          {/* Main layout: big ring + categories */}
-          <div style={{ display:"flex", gap:32, alignItems:"center", flexWrap:"wrap" }}>
-
-            {/* ── Big Score Ring ── */}
-            <div style={{ flexShrink:0, display:"flex", flexDirection:"column", alignItems:"center", gap:8 }}>
-              <div style={{ position:"relative", width:130, height:130 }} className="sc-grade-ring">
-                <svg width="130" height="130" viewBox="0 0 130 130">
-                  {/* Track */}
-                  <circle cx="65" cy="65" r="54"
-                    fill="none" stroke="#edeee9" strokeWidth="10" />
-                  {/* Fill */}
-                  <circle
-                    className="big-score-ring"
-                    cx="65" cy="65" r="54"
-                    fill="none"
-                    stroke={getCategoryColor(overallScoreCard).bar}
-                    strokeWidth="10"
-                    strokeLinecap="round"
-                    strokeDasharray="339"
-                    strokeDashoffset={339 - (339 * overallScoreCard) / 100}
-                    transform="rotate(-90 65 65)"
-                    style={{ "--big-ring-end": 339 - (339 * overallScoreCard) / 100 }}
-                  />
-                  {/* Tick marks */}
-                  {[0,25,50,75].map((pct, i) => {
-                    const angle = (pct / 100) * 360 - 90;
-                    const rad   = (angle * Math.PI) / 180;
-                    const x1 = 65 + 48 * Math.cos(rad);
-                    const y1 = 65 + 48 * Math.sin(rad);
-                    const x2 = 65 + 56 * Math.cos(rad);
-                    const y2 = 65 + 56 * Math.sin(rad);
-                    return <line key={i} x1={x1} y1={y1} x2={x2} y2={y2} stroke="#dde3d8" strokeWidth="1.5" />;
-                  })}
-                </svg>
-                <div style={{
-                  position:"absolute", inset:0,
-                  display:"flex", flexDirection:"column",
-                  alignItems:"center", justifyContent:"center",
-                }}>
-                  <span style={{
-                    fontSize:30, fontWeight:900, lineHeight:1,
-                    color: getCategoryColor(overallScoreCard).bar,
-                  }}>
-                    {overallScoreCard}
-                  </span>
-                  <span style={{ fontSize:10, color:"#aaa", fontWeight:700, letterSpacing:"0.06em", marginTop:2 }}>
-                    / 100
-                  </span>
-                </div>
-              </div>
-
-              {/* Grade label */}
-              <span className="sc-badge" style={{
-                background: getCategoryColor(overallScoreCard).bg,
-                color: getCategoryColor(overallScoreCard).text,
-                border: `1px solid ${getCategoryColor(overallScoreCard).bar}44`,
-                fontSize:11,
-              }}>
-                {getCategoryColor(overallScoreCard).badge} Profile
-              </span>
-            </div>
-
-            {/* ── Category Bars ── */}
-            <div style={{ flex:1, minWidth:220, display:"flex", flexDirection:"column", gap:16 }}>
-              {categories.map((cat) => {
-                const ci = getCategoryColor(cat.val);
-                return (
-                  <div key={cat.key}>
-                    {/* Label row */}
-                    <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom:6 }}>
-                      <div style={{ display:"flex", alignItems:"center", gap:7 }}>
-                        <span style={{ fontSize:14 }}>{cat.icon}</span>
-                        <div>
-                          <span style={{ fontSize:13, fontWeight:700, color:"#1a2a1a" }}>{cat.label}</span>
-                          <span style={{ fontSize:10, color:"#9aaa8a", marginLeft:6 }}>{cat.desc}</span>
-                        </div>
-                      </div>
-                      <div style={{ display:"flex", alignItems:"center", gap:7, flexShrink:0 }}>
-                        <span className="sc-badge" style={{
-                          background: ci.bg,
-                          color: ci.text,
-                          border: `1px solid ${ci.bar}44`,
-                        }}>
-                          {ci.badge}
-                        </span>
-                        <span style={{ fontSize:13, fontWeight:800, color: ci.bar, minWidth:32, textAlign:"right" }}>
-                          {cat.val}%
-                        </span>
-                      </div>
-                    </div>
-
-                    {/* Bar */}
-                    <div className="sc-category-bar">
-                      <div
-                        className="sc-category-fill"
-                        style={{
-                          width: `${cat.val}%`,
-                          background: `linear-gradient(90deg, ${ci.bar}aa, ${ci.bar})`,
-                        }}
-                      />
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
-          </div>
-
-          <div className="sc-divider" />
-
-          {/* Bottom insight strip */}
-          <div style={{
-            background: "rgba(255,255,255,0.7)",
-            borderRadius: 12,
-            padding: "12px 16px",
-            border: "1px solid #e8eef8",
-            display: "flex",
-            alignItems: "center",
-            gap: 10,
-          }}>
-            <span style={{ fontSize:18 }}>
-              {overallScoreCard >= 80 ? "🌟" : overallScoreCard >= 60 ? "💡" : overallScoreCard >= 40 ? "📈" : "🎯"}
-            </span>
-            <p style={{ fontSize:13, color:"#4a5a6a", lineHeight:1.6, margin:0 }}>
-              {overallScoreCard >= 80
-                ? `Outstanding profile! Your resume is highly competitive for ${jobRole}. Focus on the missing skills to reach 100%.`
-                : overallScoreCard >= 60
-                ? `Good foundation for ${jobRole}. Strengthening your missing skills and adding more projects will push your score higher.`
-                : overallScoreCard >= 40
-                ? `Your profile has potential for ${jobRole}. Follow the learning path to close skill gaps and boost your score significantly.`
-                : `Your profile needs focused development for ${jobRole}. Start with the recommended learning path to build a strong foundation.`
-              }
-            </p>
-          </div>
-        </div>
-        {/* ══════════ END AI RESUME SCORE CARD ══════════ */}
-
-        {/* ══════════ GENERATE LEARNING PATH BUTTON ══════════ */}
+        {/* ══════════════════════════════════════
+            SINGLE CENTERED BUTTON
+        ══════════════════════════════════════ */}
         <div style={{ display:"flex", justifyContent:"center" }}>
           <button
             className="main-btn"
@@ -752,7 +440,9 @@ const Analysis = () => {
 
       </main>
 
-      {/* ══════════ CONGRATULATIONS POPUP ══════════ */}
+      {/* ══════════════════════════════════════
+          CONGRATULATIONS POPUP
+      ══════════════════════════════════════ */}
       {showCongrats && (
         <div style={{
           position:"fixed", inset:0, zIndex:50,
