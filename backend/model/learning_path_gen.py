@@ -1,11 +1,79 @@
 # learning_path_gen.py
 
+import os
+import json
+from openai import OpenAI
+from dotenv import load_dotenv
+
+load_dotenv(override=True)
+_client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+
+
+# ─────────────────────────────────────────────────────────
+# GPT FALLBACK — only called for skills NOT in the dict
+# Keeps API usage to an absolute minimum
+# ─────────────────────────────────────────────────────────
+def _gpt_fallback(skill: str) -> dict:
+    prompt = f"""You are a career learning advisor. For the skill "{skill}", provide:
+1. Two real, well-known online courses with their actual URLs.
+2. One hands-on project idea that demonstrates this skill in a real-world scenario.
+
+Respond ONLY with valid JSON. No markdown, no backticks, no explanation:
+{{
+  "courses": [
+    {{"title": "Course title – Platform name", "url": "https://actual-url.com"}},
+    {{"title": "Course title – Platform name", "url": "https://actual-url.com"}}
+  ],
+  "project": "A one-sentence hands-on project idea."
+}}"""
+
+    try:
+        response = _client.responses.create(
+            model="gpt-5-nano",
+            input=[{"role": "user", "content": prompt}]
+        )
+        raw = response.output_text.strip()
+
+        # Strip markdown fences if model wraps output in ```json ... ```
+        if raw.startswith("```"):
+            raw = raw.split("```")[1]
+            if raw.startswith("json"):
+                raw = raw[4:]
+            raw = raw.strip()
+
+        data    = json.loads(raw)
+        courses = data.get("courses", [])
+        project = data.get("project", f"Build a real-world project applying {skill}.")
+
+        if not isinstance(courses, list) or len(courses) < 1:
+            raise ValueError("Invalid courses list from GPT")
+
+        return {"courses": courses[:2], "project": project}
+
+    except Exception as e:
+        # Last-resort static fallback if GPT call itself fails
+        print(f"[GPT fallback failed for '{skill}']: {e}")
+        return {
+            "courses": [
+                {
+                    "title": f"{skill} Course – Coursera",
+                    "url": f"https://www.coursera.org/search?query={skill.replace(' ', '%20')}"
+                },
+                {
+                    "title": f"{skill} Tutorial – freeCodeCamp",
+                    "url": f"https://www.youtube.com/results?search_query={skill.replace(' ', '+')}+freecodecamp"
+                }
+            ],
+            "project": f"Build a real-world project applying {skill} in a production scenario."
+        }
+
+
 def generate_learning_path(gap_analysis):
     """
     Generates a high-quality learning roadmap based on missing skills.
     Uses ONLY trusted, globally recognized learning platforms.
     Covers all skills across all 20 job roles in job_skills_data.json.
-    Clean fallback for anything not listed.
+    GPT fallback ONLY for skills genuinely not in the dictionary (rare).
     """
 
     SKILL_RESOURCES = {
@@ -1436,25 +1504,19 @@ def generate_learning_path(gap_analysis):
     missing_skills = gap_analysis.get("missingSkills", [])
 
     for skill in missing_skills:
-        resource = SKILL_RESOURCES.get(skill, {
-            "courses": [
-                {
-                    "title": f"{skill} Course – Coursera",
-                    "url": f"https://www.coursera.org/search?query={skill.replace(' ', '%20')}"
-                },
-                {
-                    "title": f"{skill} Tutorial – freeCodeCamp",
-                    "url": f"https://www.youtube.com/results?search_query={skill.replace(' ', '+')}+freecodecamp"
-                }
-            ],
-            "project": f"Build a real-world project applying {skill} in a production scenario."
-        })
+        # ── Step 1: try the hardcoded dictionary (covers 99% of cases, zero API cost) ──
+        resource = SKILL_RESOURCES.get(skill)
+
+        # ── Step 2: only if truly not found, call GPT (rare — keeps API usage minimal) ──
+        if resource is None:
+            print(f"[GPT fallback] Skill '{skill}' not in dictionary — calling API")
+            resource = _gpt_fallback(skill)
 
         roadmap.append({
-            "skill": skill,
+            "skill":               skill,
             "recommended_courses": resource["courses"],
-            "mini_project": resource["project"],
-            "estimated_time": "2–3 weeks"
+            "mini_project":        resource["project"],
+            "estimated_time":      "2–3 weeks"
         })
 
     return roadmap

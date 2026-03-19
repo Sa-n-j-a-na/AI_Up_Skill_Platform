@@ -17,7 +17,6 @@ from dotenv import load_dotenv
 app = Flask(__name__)
 CORS(app)
 
-# 🔑 Load environment variables
 load_dotenv(override=True)
 
 print("OPENAI KEY FOUND:", bool(os.getenv("OPENAI_API_KEY")))
@@ -25,10 +24,72 @@ print("JSEARCH KEY FOUND:", bool(os.getenv("JSEARCH_API_KEY")))
 
 client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
 
-# ✅ Load job skills dataset once
 DATA_PATH = os.path.join("utils", "job_skills_data.json")
 with open(DATA_PATH, "r", encoding="utf-8") as f:
     JOB_SKILLS_DATA = json.load(f)
+
+
+# ============================
+# 🎭 PERSONA SYSTEM PROMPTS
+# ============================
+PERSONA_PROMPTS = {
+
+    "friendly": """
+You are a warm, supportive interviewer for the role of {job_role}.
+
+Your job is to ask ONE interview question at a time and then evaluate the candidate's answer.
+
+After each answer, you MUST follow this exact structure — no exceptions:
+
+✅ Strength: [Point out one genuine positive thing about their answer, be encouraging]
+💡 Improvement: [Give one specific, kind suggestion to improve the answer]
+
+Then decide:
+- If the answer was SATISFACTORY (shows basic understanding, even if imperfect): say "Great effort! Let's move on." then ask the NEXT interview question.
+- If the answer was UNSATISFACTORY (too vague, off-topic, very incomplete, or just "I don't know"): say "That's okay, let's try again! 😊" then REPEAT THE SAME QUESTION with a gentle hint to help them.
+
+Never skip the feedback format. Never move on from an unsatisfactory answer.
+Be warm, patient and encouraging throughout.
+""",
+
+    "balanced": """
+You are a professional, fair interviewer for the role of {job_role}.
+
+Your job is to ask ONE interview question at a time and then evaluate the candidate's answer.
+
+After each answer, you MUST follow this exact structure — no exceptions:
+
+✅ Strength: [Identify one clear strength in their answer]
+💡 Improvement: [Give one specific, actionable suggestion to strengthen the answer]
+
+Then decide:
+- If the answer was SATISFACTORY (demonstrates reasonable understanding of the topic): say "Good. Moving to the next question." then ask the NEXT interview question.
+- If the answer was UNSATISFACTORY (too brief, missing key concepts, unclear, or irrelevant): say "Let's revisit this question." then REPEAT THE SAME QUESTION. Do not provide the answer — just ask them to try again with better depth.
+
+Never skip the feedback format. Never move on from an unsatisfactory answer.
+Maintain a professional, neutral tone throughout.
+""",
+
+    "strict": """
+You are a rigorous, demanding senior interviewer for the role of {job_role}.
+
+Your job is to ask ONE tough interview question at a time and critically evaluate the candidate's answer.
+
+After each answer, you MUST follow this exact structure — no exceptions:
+
+✅ Strength: [Acknowledge only what was genuinely correct or strong — be brief and direct]
+💡 Improvement: [Give one sharp, specific criticism pointing out exactly what was missing or weak]
+
+Then decide:
+- If the answer was SATISFACTORY (shows solid understanding with specifics and depth): say "Acceptable. Next question." then ask the NEXT, HARDER interview question.
+- If the answer was UNSATISFACTORY (vague, shallow, missing key technical depth, or incorrect): say "That answer is insufficient. Try again." then REPEAT THE SAME QUESTION with no hints. Expect a better answer.
+
+Never skip the feedback format. Never move on from an unsatisfactory answer.
+Be direct, critical, and maintain high standards. Do not soften your feedback.
+"""
+}
+
+DEFAULT_PERSONA = "balanced"
 
 
 # ============================
@@ -59,16 +120,39 @@ def analyze():
 def interview():
     data = request.json or {}
     job_role = data.get("jobRole", "Software Engineer")
+    persona  = data.get("persona", DEFAULT_PERSONA)
     messages = data.get("messages", [])
 
+    # ── Welcome message on first load (no messages yet) ──
     if len(messages) == 0:
+        welcome_map = {
+            "friendly": (
+                f"Welcome! 😊 I'm so excited to interview you for the {job_role} role today. "
+                "This is a safe space — take your time and answer naturally. "
+                "I'll give you feedback after every answer and we'll work through each question together.\n\n"
+                "Let's begin! Here's your first question:\n\n"
+                "Can you briefly introduce yourself and tell me why you're interested in this role?"
+            ),
+            "balanced": (
+                f"Welcome to your {job_role} interview.\n\n"
+                "After each answer you'll receive structured feedback — a strength and an improvement point. "
+                "If your answer needs more depth, I'll ask you to try again before we move on.\n\n"
+                "First question:\n\n"
+                "Can you briefly introduce yourself and explain what draws you to this role?"
+            ),
+            "strict": (
+                f"This is your {job_role} interview. Rules are simple: answer clearly, with depth and precision. "
+                "You will receive feedback after every answer. "
+                "If your answer is insufficient, you will be asked to try again — no exceptions.\n\n"
+                "First question:\n\n"
+                "Introduce yourself. Justify why you are a strong candidate for this role."
+            ),
+        }
         return jsonify({
-            "reply": (
-                f"Welcome to your {job_role} interview.\n"
-                "First question: Can you briefly introduce yourself?"
-            )
+            "reply": welcome_map.get(persona, welcome_map[DEFAULT_PERSONA])
         })
 
+    # ── Clean message history ──
     clean_messages = [
         m for m in messages
         if isinstance(m, dict)
@@ -77,16 +161,12 @@ def interview():
         and isinstance(m.get("content"), str)
     ]
 
+    # ── Build persona system prompt ──
+    persona_template = PERSONA_PROMPTS.get(persona, PERSONA_PROMPTS[DEFAULT_PERSONA])
+    system_prompt = persona_template.format(job_role=job_role)
+
     full_messages = [
-        {
-            "role": "system",
-            "content": (
-                f"You are a professional interviewer for the role of {job_role}. "
-                "Ask ONE interview question at a time. "
-                "After each answer, give short feedback "
-                "(one strength + one improvement), then ask the next question."
-            ),
-        }
+        {"role": "system", "content": system_prompt}
     ] + clean_messages
 
     try:
@@ -94,7 +174,6 @@ def interview():
             model="gpt-5-nano",
             input=full_messages
         )
-
         reply = response.output_text
         return jsonify({"reply": reply})
 
@@ -149,7 +228,6 @@ def study_assistant():
             model="gpt-5-nano",
             input=full_messages
         )
-
         reply = response.output_text
         return jsonify({"reply": reply})
 
@@ -158,29 +236,22 @@ def study_assistant():
 
 
 # ============================
-# 📅 FAST INDIA + REMOTE HIRING CALENDAR
+# 📅 HIRING CALENDAR ROUTE
 # ============================
 @app.route("/hiring-calendar", methods=["GET"])
 def hiring_calendar():
     try:
-        import requests
-        from datetime import datetime
-
         role = request.args.get("role", "software developer")
-
         JSEARCH_API_KEY = os.getenv("JSEARCH_API_KEY")
 
         if not JSEARCH_API_KEY:
             return jsonify({"error": "JSEARCH_API_KEY not found"}), 500
 
         url = "https://jsearch.p.rapidapi.com/search"
-
         headers = {
             "X-RapidAPI-Key": JSEARCH_API_KEY,
             "X-RapidAPI-Host": "jsearch.p.rapidapi.com"
         }
-
-        # 🔥 SINGLE FAST QUERY
         querystring = {
             "query": f"{role} OR {role} internship OR {role} fresher",
             "country": "IN",
@@ -191,16 +262,13 @@ def hiring_calendar():
 
         response = requests.get(url, headers=headers, params=querystring, timeout=60)
         data = response.json()
-
-        jobs = data.get("data", [])[:30]  # 🔥 limit results for speed
-
+        jobs = data.get("data", [])[:30]
         calendar = {}
 
         for job in jobs:
             posted_date = job.get("job_posted_at_datetime_utc")
             if not posted_date:
                 continue
-
             try:
                 date_obj = datetime.fromisoformat(posted_date.replace("Z", ""))
                 month_name = date_obj.strftime("%B")
@@ -209,8 +277,8 @@ def hiring_calendar():
 
             min_salary = job.get("job_min_salary")
             max_salary = job.get("job_max_salary")
-            currency = job.get("job_salary_currency")
-            period = job.get("job_salary_period")
+            currency   = job.get("job_salary_currency")
+            period     = job.get("job_salary_period")
 
             if min_salary and max_salary:
                 salary = f"{currency} {min_salary:,} - {max_salary:,} / {period}"
@@ -220,20 +288,20 @@ def hiring_calendar():
                 salary = "Not disclosed"
 
             job_entry = {
-                "company": job.get("employer_name"),
-                "role": job.get("job_title"),
-                "location": job.get("job_city") or "Remote",
-                "category": job.get("job_employment_type"),
-                "salary": salary,
+                "company":    job.get("employer_name"),
+                "role":       job.get("job_title"),
+                "location":   job.get("job_city") or "Remote",
+                "category":   job.get("job_employment_type"),
+                "salary":     salary,
                 "apply_link": job.get("job_apply_link")
             }
-
             calendar.setdefault(month_name, []).append(job_entry)
 
         return jsonify({"calendar": calendar})
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
 
 # ============================
 # ▶️ RUN SERVER

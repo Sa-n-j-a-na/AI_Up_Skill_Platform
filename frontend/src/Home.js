@@ -1,7 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 
-// ✅ Exact keys from job_skills_data.json → readable labels
 const JOB_ROLES = [
   { value: "Software Engineer",         label: "Software Engineer" },
   { value: "Frontend Developer",        label: "Frontend Developer" },
@@ -25,17 +24,23 @@ const JOB_ROLES = [
   { value: "Embedded Systems Engineer", label: "Embedded Systems Engineer" },
 ];
 
+// ── Allowed file types ──
+const ALLOWED_TYPES = ["application/pdf", "application/msword",
+  "application/vnd.openxmlformats-officedocument.wordprocessingml.document"];
+const ALLOWED_EXTENSIONS = [".pdf", ".doc", ".docx"];
+const MAX_SIZE_MB = 10;
+
 const Home = () => {
-  const [resume, setResume]   = useState(null);
-  const [jobRole, setJobRole] = useState("");
-  const [loading, setLoading] = useState(false);
-  const [open, setOpen]       = useState(false);
-  const [search, setSearch]   = useState("");
+  const [resume, setResume]         = useState(null);
+  const [jobRole, setJobRole]       = useState("");
+  const [loading, setLoading]       = useState(false);
+  const [open, setOpen]             = useState(false);
+  const [search, setSearch]         = useState("");
+  const [fileError, setFileError]   = useState("");   // ← validation error
 
   const dropdownRef = useRef(null);
   const navigate    = useNavigate();
 
-  // ✅ Close on outside click — fixes the React warning too
   useEffect(() => {
     const handleOutside = (e) => {
       if (dropdownRef.current && !dropdownRef.current.contains(e.target)) {
@@ -51,7 +56,41 @@ const Home = () => {
     r.label.toLowerCase().includes(search.toLowerCase())
   );
 
-  const handleFileChange = (e) => setResume(e.target.files[0]);
+  // ── File validation ──
+  const handleFileChange = (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setFileError("");
+
+    // Check extension
+    const name = file.name.toLowerCase();
+    const validExt = ALLOWED_EXTENSIONS.some((ext) => name.endsWith(ext));
+
+    // Check MIME type (belt-and-suspenders with extension)
+    const validType = ALLOWED_TYPES.includes(file.type) || validExt;
+
+    // Check size
+    const sizeMB = file.size / (1024 * 1024);
+
+    if (!validType) {
+      setFileError(
+        "Invalid file format. Please upload your resume as a PDF document (.pdf)."
+      );
+      e.target.value = "";
+      return;
+    }
+
+    if (sizeMB > MAX_SIZE_MB) {
+      setFileError(
+        `File size exceeds the ${MAX_SIZE_MB}MB limit. Please upload a smaller file.`
+      );
+      e.target.value = "";
+      return;
+    }
+
+    setResume(file);
+  };
 
   const handleAnalyze = async () => {
     if (!resume || !jobRole) {
@@ -63,14 +102,14 @@ const Home = () => {
     formData.append("file", resume);
     formData.append("job_role", jobRole);
     try {
-      const res = await fetch("http://localhost:5000/analyze", {
+      const res  = await fetch("http://localhost:5000/analyze", {
         method: "POST",
         body: formData,
       });
       const data = await res.json();
       navigate("/analysis", { state: { result: data, jobRole } });
-    } catch (err) {
-      alert("Error analyzing resume");
+    } catch {
+      alert("Error analyzing resume. Please try again.");
     } finally {
       setLoading(false);
     }
@@ -88,9 +127,7 @@ const Home = () => {
           0%,100% { box-shadow: 0 12px 24px rgba(163,177,138,0.38); }
           50%      { box-shadow: 0 12px 34px rgba(163,177,138,0.58); }
         }
-        @keyframes spin {
-          to { transform: rotate(360deg); }
-        }
+        @keyframes spin { to { transform: rotate(360deg); } }
         @keyframes glowPulse {
           0%,100% {
             box-shadow:
@@ -107,12 +144,12 @@ const Home = () => {
               0 0 48px 10px rgba(210,195,150,0.18);
           }
         }
-        @keyframes shimmerTitle {
-          0%   { background-position: -500px 0; }
-          100% { background-position:  500px 0; }
-        }
         @keyframes dropIn {
           from { opacity: 0; transform: translateY(-6px); }
+          to   { opacity: 1; transform: translateY(0); }
+        }
+        @keyframes errorIn {
+          from { opacity: 0; transform: translateY(-4px); }
           to   { opacity: 1; transform: translateY(0); }
         }
 
@@ -123,16 +160,9 @@ const Home = () => {
 
         .card-glow { animation: glowPulse 4s ease-in-out infinite; }
 
+        /* ── SkillUp title — plain black ── */
         .skillup-title {
-          background: linear-gradient(
-            90deg,
-            #1f2a1f 0%, #5a7a4a 30%, #9ac5f4 55%, #d6c8f7 70%, #1f2a1f 100%
-          );
-          background-size: 500px auto;
-          -webkit-background-clip: text;
-          -webkit-text-fill-color: transparent;
-          background-clip: text;
-          animation: shimmerTitle 5s linear infinite;
+          color: #111827;
         }
 
         .upload-zone { transition: background 0.2s ease, border-color 0.2s ease; }
@@ -140,36 +170,28 @@ const Home = () => {
           background: rgba(183,199,161,0.40) !important;
           border-color: #8da87a !important;
         }
-
-        /* ── Trigger box ── */
-        .role-trigger {
-          transition: border-color 0.2s ease, box-shadow 0.2s ease;
+        .upload-zone.has-error {
+          border-color: #f87171 !important;
+          background: rgba(254,202,202,0.18) !important;
         }
+
+        .role-trigger { transition: border-color 0.2s ease, box-shadow 0.2s ease; }
         .role-trigger:hover  { border-color: #B7C7A1; }
         .role-trigger.active {
           border-color: #B7C7A1;
           box-shadow: 0 0 0 3px rgba(183,199,161,0.25);
         }
 
-        /* ── Dropdown panel ── */
-        .role-panel {
-          animation: dropIn 0.18s ease both;
-        }
-        /* ── Scrollbar ── */
+        .role-panel { animation: dropIn 0.18s ease both; }
         .role-panel::-webkit-scrollbar       { width: 4px; }
         .role-panel::-webkit-scrollbar-thumb { background: #B7C7A1; border-radius: 99px; }
         .role-panel::-webkit-scrollbar-track { background: transparent; }
 
-        /* ── Search input inside panel ── */
         .role-search:focus { outline: none; }
 
-        /* ── Option rows ── */
-        .role-option {
-          transition: background 0.13s ease, padding-left 0.13s ease;
-          cursor: pointer;
-        }
-        .role-option:hover        { background: rgba(183,199,161,0.28); padding-left: 20px; }
-        .role-option.is-selected  { background: rgba(183,199,161,0.42); font-weight: 600; color: #2d4a1e; }
+        .role-option { transition: background 0.13s ease, padding-left 0.13s ease; cursor: pointer; }
+        .role-option:hover       { background: rgba(183,199,161,0.28); padding-left: 20px; }
+        .role-option.is-selected { background: rgba(183,199,161,0.42); font-weight: 600; color: #2d4a1e; }
 
         .analyze-btn {
           transition: background 0.2s ease, transform 0.18s ease, box-shadow 0.2s ease;
@@ -184,13 +206,26 @@ const Home = () => {
         .analyze-btn:active:not(:disabled) { transform: translateY(0); }
         .analyze-btn:disabled { opacity: 0.8; cursor: not-allowed; animation: none; }
         .spin { animation: spin 0.85s linear infinite; }
+
+        /* ── File error banner ── */
+        .file-error-banner {
+          animation: errorIn 0.22s ease both;
+          display: flex; align-items: flex-start; gap: 8px;
+          background: #fff5f5;
+          border: 1px solid #fca5a5;
+          border-radius: 10px;
+          padding: 10px 12px;
+          font-size: 13px;
+          color: #b91c1c;
+          line-height: 1.5;
+        }
       `}</style>
 
-      {/* ===== Layered textured background ===== */}
+      {/* Background */}
       <div className="absolute inset-0 bg-gradient-to-br from-[#ffe9f0] via-[#f3e8dd] to-[#efe1d3]" />
       <div className="absolute inset-0 opacity-40 bg-[radial-gradient(circle_at_20%_15%,#ffffff_0%,transparent_45%),radial-gradient(circle_at_80%_25%,#ffffff_0%,transparent_50%)]" />
 
-      {/* ===== Decorative corners ===== */}
+      {/* Decorative corners */}
       <svg className="absolute top-0 left-0 w-64 opacity-20" viewBox="0 0 200 200">
         <path fill="#7fb77e" d="M42.5,-56.4C54.6,-46.5,63.2,-33.6,66.7,-19.2C70.2,-4.7,68.6,11.2,61.2,23.8C53.8,36.3,40.6,45.6,26.2,53.3C11.8,61.1,-3.8,67.3,-18.6,63.7C-33.4,60.2,-47.4,46.9,-56.1,31.8C-64.9,16.8,-68.4,-0.1,-64.2,-15.4C-60.1,-30.6,-48.3,-44.2,-34.2,-54C-20.1,-63.9,-10.1,-70.1,2.5,-73.5C15,-76.9,30.1,-77.4,42.5,-56.4Z" transform="translate(100 100)" />
       </svg>
@@ -198,11 +233,11 @@ const Home = () => {
         <path fill="#9ac5f4" d="M34.9,-53.3C47.2,-45.4,60.4,-40.1,65.7,-29.7C71,-19.3,68.4,-3.9,62.8,8.5C57.1,20.8,48.4,30.2,38.1,40.5C27.8,50.8,15.9,62,-0.4,62.5C-16.7,63,-33.5,52.9,-43.5,39.4C-53.5,25.9,-56.7,9.1,-55.5,-7.1C-54.3,-23.3,-48.6,-38.8,-37.8,-47.7C-27,-56.7,-13.5,-59.1,-0.3,-58.6C12.9,-58.1,25.8,-54.3,34.9,-53.3Z" transform="translate(100 100)" />
       </svg>
 
-      {/* ===== Main content ===== */}
+      {/* Main content */}
       <div className="relative z-10 flex items-center justify-center min-h-screen px-4">
         <div className="w-full max-w-xl text-center">
 
-          {/* ===== Header ===== */}
+          {/* Header */}
           <div className="mb-8">
             <div className="fade-1 flex items-center justify-center gap-3 mb-3">
               <svg viewBox="0 0 24 24" className="w-8 h-8">
@@ -215,6 +250,7 @@ const Home = () => {
                 </defs>
                 <path d="M12 2 L15 9 L22 12 L15 15 L12 22 L9 15 L2 12 L9 9 Z" fill="url(#gemGradient)" />
               </svg>
+              {/* ── Plain gradient title, shimmer animation removed ── */}
               <h1 className="text-3xl font-bold skillup-title">SkillUp</h1>
             </div>
             <h2 className="fade-2 text-3xl md:text-4xl font-extrabold text-gray-900">
@@ -225,34 +261,47 @@ const Home = () => {
             </p>
           </div>
 
-          {/* ===== Card ===== */}
+          {/* Card */}
           <div className="card-glow fade-4 relative bg-white/70 backdrop-blur-xl rounded-3xl border border-white/60 shadow-[0_30px_80px_rgba(0,0,0,0.15)] p-8 space-y-6">
 
-            {/* Upload Resume — untouched */}
+            {/* ── Upload Resume ── */}
             <div className="text-left">
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Upload Resume
               </label>
-              <label className="upload-zone flex flex-col items-center justify-center rounded-2xl
+              <label className={`upload-zone flex flex-col items-center justify-center rounded-2xl
                 border-2 border-dashed border-[#B7C7A1] bg-[#B7C7A1]/30
-                p-10 cursor-pointer transition hover:bg-[#B7C7A1]/40">
+                p-10 cursor-pointer transition ${fileError ? "has-error" : ""}`}>
                 <span className="text-gray-700 text-sm">
                   {resume ? `✓  ${resume.name}` : "Upload a file or drag and drop"}
                 </span>
                 <span className="text-xs text-gray-500 mt-1">
-                  {resume ? "Click to change file" : "PDF, DOCX up to 10MB"}
+                  {resume ? "Click to change file" : "PDF (.pdf) | Max 10MB"}
                 </span>
-                <input type="file" className="hidden" onChange={handleFileChange} />
+                <input type="file" className="hidden"
+                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
+                  onChange={handleFileChange} />
               </label>
+
+              {/* ── Professional error banner ── */}
+              {fileError && (
+                <div className="file-error-banner mt-3">
+                  <svg width="15" height="15" viewBox="0 0 20 20" fill="none" style={{flexShrink:0,marginTop:1}}>
+                    <circle cx="10" cy="10" r="9" stroke="#f87171" strokeWidth="1.8"/>
+                    <line x1="10" y1="6" x2="10" y2="11" stroke="#f87171" strokeWidth="1.8" strokeLinecap="round"/>
+                    <circle cx="10" cy="14" r="1" fill="#f87171"/>
+                  </svg>
+                  <span>{fileError}</span>
+                </div>
+              )}
             </div>
 
-            {/* ✅ Dropdown — fully fixed & themed */}
+            {/* ── Dropdown ── */}
             <div className="text-left" ref={dropdownRef}>
               <label className="block text-sm font-medium text-gray-700 mb-2">
                 Desired Job Role
               </label>
 
-              {/* Trigger */}
               <div
                 onClick={() => { setOpen((o) => !o); setSearch(""); }}
                 className={`role-trigger w-full rounded-xl border border-gray-300
@@ -262,61 +311,41 @@ const Home = () => {
                 <span className={`text-sm ${jobRole ? "text-gray-800 font-medium" : "text-gray-400"}`}>
                   {jobRole || "Select a job role"}
                 </span>
-                {/* Animated chevron */}
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none"
                   style={{ transform: open ? "rotate(180deg)" : "rotate(0deg)", transition: "transform 0.2s ease", flexShrink: 0 }}>
-                  <path d="M2 4l4 4 4-4" stroke="#8da87a" strokeWidth="1.8"
-                    strokeLinecap="round" strokeLinejoin="round" />
+                  <path d="M2 4l4 4 4-4" stroke="#8da87a" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round" />
                 </svg>
               </div>
 
-              {/* Panel */}
               {open && (
                 <div className="role-panel absolute z-50 mt-1 rounded-xl border border-[#B7C7A1]
-                  bg-white shadow-[0_8px_28px_rgba(0,0,0,0.10)]
-                  overflow-hidden"
-                  style={{ width: "calc(100% - 4rem)" }} /* matches card padding */
-                >
-                  {/* Search bar inside panel */}
+                  bg-white shadow-[0_8px_28px_rgba(0,0,0,0.10)] overflow-hidden"
+                  style={{ width: "calc(100% - 4rem)" }}>
                   <div className="flex items-center gap-2 px-3 py-2 border-b border-[#e8f0e0]"
                     style={{ background: "rgba(183,199,161,0.12)" }}>
                     <svg width="13" height="13" viewBox="0 0 13 13" fill="none">
                       <circle cx="5.5" cy="5.5" r="4" stroke="#8da87a" strokeWidth="1.5" />
                       <path d="M9 9l2.5 2.5" stroke="#8da87a" strokeWidth="1.5" strokeLinecap="round" />
                     </svg>
-                    <input
-                      type="text"
-                      value={search}
-                      onChange={(e) => setSearch(e.target.value)}
-                      placeholder="Search roles..."
-                      className="role-search flex-1 text-sm text-gray-700 bg-transparent placeholder-gray-400"
-                      autoFocus
-                    />
+                    <input type="text" value={search} onChange={(e) => setSearch(e.target.value)}
+                      placeholder="Search roles..." autoFocus
+                      className="role-search flex-1 text-sm text-gray-700 bg-transparent placeholder-gray-400" />
                     {search && (
                       <button onClick={() => setSearch("")}
                         className="text-gray-300 hover:text-gray-500 text-xs leading-none">✕</button>
                     )}
                   </div>
 
-                  {/* Options list — max-h with padding bottom so last item is never hidden */}
                   <div className="role-panel overflow-y-auto" style={{ maxHeight: "160px" }}>
                     {filteredRoles.length > 0 ? (
                       <>
                         {filteredRoles.map((role) => (
-                          <div
-                            key={role.value}
-                            onMouseDown={() => {
-                              setJobRole(role.value);
-                              setOpen(false);
-                              setSearch("");
-                            }}
-                            className={`role-option px-4 py-2 text-sm text-gray-700
-                              ${jobRole === role.value ? "is-selected" : ""}`}
-                          >
+                          <div key={role.value}
+                            onMouseDown={() => { setJobRole(role.value); setOpen(false); setSearch(""); }}
+                            className={`role-option px-4 py-2 text-sm text-gray-700 ${jobRole === role.value ? "is-selected" : ""}`}>
                             {role.label}
                           </div>
                         ))}
-                        {/* ✅ Bottom padding so last item is never clipped */}
                         <div style={{ height: "6px" }} />
                       </>
                     ) : (
@@ -327,10 +356,8 @@ const Home = () => {
               )}
             </div>
 
-            {/* Analyze Button — untouched */}
-            <button
-              onClick={handleAnalyze}
-              disabled={loading}
+            {/* ── Analyze Button ── */}
+            <button onClick={handleAnalyze} disabled={loading || !!fileError}
               className="analyze-btn group relative w-full overflow-hidden rounded-2xl py-4 font-bold text-white
                 bg-[#A3B18A] shadow-[0_12px_24px_rgba(183,199,161,0.35)]
                 transition-all duration-300 hover:bg-[#8D9977] hover:shadow-lg disabled:bg-[#A3B18A]">
