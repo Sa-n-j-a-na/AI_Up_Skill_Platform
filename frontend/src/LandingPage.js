@@ -1,18 +1,10 @@
 import React, { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
-const TYPEWRITER_TEXT =
-  "Drop your resume, find out exactly where you stand, and get a personalized roadmap to bridge the gap — powered by AI built for your career.";
-
 const LandingPage = () => {
   const navigate = useNavigate();
   const [visibleCards, setVisibleCards] = useState([]);
   const cardRefs = useRef([]);
-
-  // ── Typewriter state ──
-  const [displayed, setDisplayed] = useState("");
-  const [typewriterDone, setTypewriterDone] = useState(false);
-  const indexRef = useRef(0);
 
   // Cards fade+rise in when they scroll into view
   useEffect(() => {
@@ -30,25 +22,6 @@ const LandingPage = () => {
       return obs;
     });
     return () => observers.forEach((obs) => obs && obs.disconnect());
-  }, []);
-
-  // ── Typewriter effect — starts after hero h1 animation (≈0.95s delay) ──
-  useEffect(() => {
-    const startDelay = setTimeout(() => {
-      const interval = setInterval(() => {
-        indexRef.current += 1;
-        setDisplayed(TYPEWRITER_TEXT.slice(0, indexRef.current));
-
-        if (indexRef.current >= TYPEWRITER_TEXT.length) {
-          clearInterval(interval);
-          setTypewriterDone(true);
-        }
-      }, 22); // speed: lower = faster
-
-      return () => clearInterval(interval);
-    }, 950); // wait for h1 fade-up to finish
-
-    return () => clearTimeout(startDelay);
   }, []);
 
   const cards = [
@@ -134,27 +107,8 @@ const LandingPage = () => {
           to   { opacity: 1; transform: translateY(0); }
         }
         .hero-h1  { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.15s both; }
+        .hero-para { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.30s both; }
         .hero-btn { animation: fadeUp 0.8s cubic-bezier(0.16,1,0.3,1) 0.45s both; }
-
-        /* ── Typewriter cursor blink ── */
-        @keyframes blink {
-          0%, 100% { opacity: 1; }
-          50%       { opacity: 0; }
-        }
-        .tw-cursor {
-          display: inline-block;
-          width: 2px;
-          height: 1.1em;
-          background: rgba(255,255,255,0.85);
-          margin-left: 2px;
-          vertical-align: text-bottom;
-          border-radius: 1px;
-          animation: blink 0.75s step-end infinite;
-        }
-        .tw-cursor.done {
-          animation: none;
-          opacity: 0;
-        }
 
         /* ── Shimmer on hero title ── */
         @keyframes shimmer {
@@ -302,10 +256,11 @@ const LandingPage = () => {
               <span className="shimmer-word">Career Potential</span>
             </h1>
 
-            {/* ── Typewriter paragraph ── */}
-            <p className="mt-4 text-gray-200 text-lg min-h-[5rem]">
-              {displayed}
-              <span className={`tw-cursor${typewriterDone ? " done" : ""}`} />
+            {/* ✅ Plain static text — typewriter fully removed */}
+            <p className="hero-para mt-4 text-gray-200 text-lg">
+              Drop your resume, find out exactly where you stand, and get a
+              personalized roadmap to bridge the gap — powered by AI built for
+              your career.
             </p>
 
             <button
