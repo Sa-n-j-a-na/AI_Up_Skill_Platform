@@ -16,6 +16,34 @@ const months = [
   { name: "December",  icon: "holiday_village",  color: "#34d399" },
 ];
 
+// ─────────────────────────────────────────────
+// NEW: sessionStorage cache helpers
+// Key is role-specific so different roles don't
+// share stale data, but the same role within a
+// session is fetched only once.
+// ─────────────────────────────────────────────
+const CACHE_KEY = (role) =>
+  `skillup_hiring_${role.trim().toLowerCase().replace(/\s+/g, "_")}`;
+
+function getCached(role) {
+  try {
+    const raw = sessionStorage.getItem(CACHE_KEY(role));
+    if (!raw) return null;
+    return JSON.parse(raw);
+  } catch {
+    return null;
+  }
+}
+
+function setCache(role, data) {
+  try {
+    sessionStorage.setItem(CACHE_KEY(role), JSON.stringify(data));
+  } catch {}
+}
+
+// ─────────────────────────────────────────────
+// Component
+// ─────────────────────────────────────────────
 const HiringCalendar = () => {
   const location = useLocation();
   const params   = new URLSearchParams(location.search);
@@ -29,13 +57,29 @@ const HiringCalendar = () => {
   const detailsRef = useRef(null);
 
   useEffect(() => {
+    // ── NEW: check cache first ──
+    const cached = getCached(jobRole);
+    if (cached) {
+      setCalendarData(cached);
+      setLoading(false);
+      return;
+    }
+
+    // Cache miss — fetch from API
     setLoading(true);
     setError(null);
+
     fetch(`http://localhost:5000/hiring-calendar?role=${encodeURIComponent(jobRole)}`)
       .then((res) => res.json())
       .then((data) => {
-        if (data.error) setError(data.error);
-        else setCalendarData(data.calendar || {});
+        if (data.error) {
+          setError(data.error);
+        } else {
+          const cal = data.calendar || {};
+          setCalendarData(cal);
+          // ── NEW: save to sessionStorage ──
+          setCache(jobRole, cal);
+        }
         setLoading(false);
       })
       .catch((err) => {
@@ -80,7 +124,6 @@ const HiringCalendar = () => {
             animation: hcGlow 4s ease-in-out infinite;
           }
 
-          /* ── Month button — same size as original ── */
           .hc-month-btn {
             background: rgba(255,255,255,0.78);
             border-radius: 20px;
@@ -93,7 +136,6 @@ const HiringCalendar = () => {
             transition: all 0.28s cubic-bezier(0.34,1.3,0.64,1);
             animation: hcFadeUp 0.5s cubic-bezier(0.16,1,0.3,1) both;
           }
-          /* Bottom accent bar */
           .hc-month-btn::after {
             content:""; position:absolute; bottom:0; left:0; right:0; height:3px;
             border-radius:0 0 20px 20px;
@@ -112,9 +154,8 @@ const HiringCalendar = () => {
             background: rgba(255,255,255,0.97);
             box-shadow: 0 0 0 3px rgba(163,177,138,0.22), 0 18px 40px rgba(0,0,0,0.11);
           }
-          .hc-month-btn.sel::after    { opacity:1; }
+          .hc-month-btn.sel::after { opacity:1; }
 
-          /* Job card */
           .hc-job-card {
             background: rgba(255,255,255,0.82);
             border-radius: 15px;
@@ -174,9 +215,16 @@ const HiringCalendar = () => {
           .material-symbols-outlined {
             font-variation-settings:'FILL' 0,'wght' 400,'GRAD' 0,'opsz' 48;
           }
+
+          /* NEW: cache badge */
+          .hc-cache-badge {
+            display: inline-flex; align-items:center; gap:5px;
+            background: rgba(240,247,236,0.9); border:1px solid #B7C7A1;
+            border-radius:99px; padding:3px 10px;
+            font-size:10px; font-weight:700; color:#4a6a3a;
+          }
         `}</style>
 
-        {/* ── Page content ── */}
         <div style={{ position:"relative", zIndex:1, maxWidth:1060, margin:"0 auto", padding:"32px 24px 40px" }}>
 
           {/* ── Header ── */}
@@ -192,8 +240,11 @@ const HiringCalendar = () => {
             <p style={{ fontSize:14, color:"#7a6a58", maxWidth:420, margin:"0 auto 10px", lineHeight:1.65, fontWeight:500 }}>
               Discover peak hiring seasons and prepare at the right time.
             </p>
-            <div style={{ display:"inline-flex", alignItems:"center", gap:6, background:"rgba(255,255,255,0.8)", border:"1.5px solid #d4e0cc", borderRadius:100, padding:"5px 14px", fontSize:12.5, fontWeight:700, color:"#4a6a3a", boxShadow:"0 2px 8px rgba(0,0,0,0.05)" }}>
-              🎯 {jobRole}
+            <div style={{ display:"flex", alignItems:"center", justifyContent:"center", gap:8, flexWrap:"wrap" }}>
+              <div style={{ display:"inline-flex", alignItems:"center", gap:6, background:"rgba(255,255,255,0.8)", border:"1.5px solid #d4e0cc", borderRadius:100, padding:"5px 14px", fontSize:12.5, fontWeight:700, color:"#4a6a3a", boxShadow:"0 2px 8px rgba(0,0,0,0.05)" }}>
+                🎯 {jobRole}
+              </div>
+
             </div>
             <p style={{ fontSize:12, color:"#b0a898", marginTop:10, letterSpacing:"0.03em" }}>
               Click any month to view active listings
@@ -221,7 +272,7 @@ const HiringCalendar = () => {
               </div>
             )}
 
-            {/* ── Month grid — 4 cols × 3 rows ── */}
+            {/* ── Month grid ── */}
             {!loading && !error && (
               <div style={{ display:"grid", gridTemplateColumns:"repeat(4,1fr)", gap:12 }}>
                 {months.map((month) => {
@@ -235,22 +286,15 @@ const HiringCalendar = () => {
                       className={`hc-month-btn${isSelected ? " sel" : ""}`}
                       style={{ "--ma": month.color }}
                     >
-                      {/* Live dot */}
                       {hasData && (
                         <div style={{ position:"absolute", top:9, right:10, width:7, height:7, borderRadius:"50%", background:month.color, boxShadow:`0 0 6px ${month.color}` }}/>
                       )}
-
-                      {/* Material icon — same size as original */}
                       <span className="material-symbols-outlined" style={{ fontSize:48, color:month.color, lineHeight:1 }}>
                         {month.icon}
                       </span>
-
-                      {/* Name */}
                       <span style={{ fontSize:12, fontWeight:800, color:"#3a3530", letterSpacing:"0.04em", textTransform:"uppercase" }}>
                         {month.name}
                       </span>
-
-                      {/* Count or dash */}
                       <span style={{ fontSize:10.5, fontWeight:700, color: hasData ? month.color : "#c0b8ae" }}>
                         {hasData ? `${count} listing${count > 1 ? "s" : ""}` : "—"}
                       </span>
@@ -265,7 +309,6 @@ const HiringCalendar = () => {
           {selectedMonth && !loading && !error && (
             <div ref={detailsRef} style={{ marginTop:18, animation:"hcFadeUp 0.4s cubic-bezier(0.16,1,0.3,1) both" }}>
 
-              {/* Listings header */}
               <div className="hc-glow-card" style={{ padding:"16px 22px", marginBottom:10, display:"flex", alignItems:"center", justifyContent:"space-between", flexWrap:"wrap", gap:10 }}>
                 <div style={{ display:"flex", alignItems:"center", gap:10 }}>
                   <span className="material-symbols-outlined" style={{ fontSize:24, color: months.find(m=>m.name===selectedMonth)?.color }}>
@@ -292,7 +335,6 @@ const HiringCalendar = () => {
                 </button>
               </div>
 
-              {/* Job cards */}
               {calendarData[selectedMonth]?.length > 0 ? (
                 <div className="hc-scroll" style={{ display:"flex", flexDirection:"column", gap:10, maxHeight:340, overflowY:"auto", paddingRight:4 }}>
                   {calendarData[selectedMonth].map((item, i) => (

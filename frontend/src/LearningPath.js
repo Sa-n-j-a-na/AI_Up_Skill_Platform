@@ -1,8 +1,242 @@
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Confetti from "react-confetti";
 
-/* 🎉 SVG Congrats board */
+// ─────────────────────────────────────────────
+// localStorage helpers
+// ─────────────────────────────────────────────
+const STORAGE_KEY = (jobRole) => `skillup_tasks_${(jobRole || "default").replace(/\s+/g, "_").toLowerCase()}`;
+
+function loadTasks(jobRole) {
+  try {
+    const raw = localStorage.getItem(STORAGE_KEY(jobRole));
+    if (raw) return JSON.parse(raw);
+  } catch {}
+  return null;
+}
+
+function saveTasks(jobRole, tasks) {
+  try {
+    localStorage.setItem(STORAGE_KEY(jobRole), JSON.stringify(tasks));
+  } catch {}
+}
+
+// ─────────────────────────────────────────────
+// PDF Export helper (pure JS, no extra deps)
+// ─────────────────────────────────────────────
+function exportLearningPathPDF({ jobRole, roadmap, tasks, score }) {
+  const completedCount = tasks.filter((t) => t.completed).length;
+
+  // Build HTML string for the printable page
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8"/>
+  <title>SkillUp — Learning Path — ${jobRole}</title>
+  <style>
+    * { margin:0; padding:0; box-sizing:border-box; }
+    body {
+      font-family: 'Segoe UI', sans-serif;
+      background: #f8faf6;
+      color: #1a2a1a;
+      padding: 40px;
+    }
+    .header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      border-bottom: 2px solid #B7C7A1;
+      padding-bottom: 18px;
+      margin-bottom: 28px;
+    }
+    .logo { display:flex; align-items:center; gap:10px; }
+    .logo-gem {
+      width: 28px; height: 28px;
+    }
+    .logo h1 { font-size:22px; font-weight:800; color:#1a2a1a; }
+    .badge {
+      background: #f0f7ec;
+      border: 1.5px solid #B7C7A1;
+      border-radius: 99px;
+      padding: 4px 14px;
+      font-size: 12px;
+      font-weight: 700;
+      color: #4a6a32;
+    }
+    .meta {
+      display: flex;
+      gap: 16px;
+      margin-bottom: 28px;
+      flex-wrap: wrap;
+    }
+    .meta-card {
+      background: white;
+      border: 1px solid #e4eae0;
+      border-radius: 12px;
+      padding: 10px 18px;
+      font-size: 13px;
+    }
+    .meta-card span { font-weight:700; color:#4a8fa8; font-size:18px; display:block; }
+    .meta-card label { color:#9aaa8a; font-size:11px; }
+    .skill-block {
+      background: white;
+      border: 1px solid #e4eae0;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 18px;
+      page-break-inside: avoid;
+    }
+    .skill-title {
+      font-size: 16px;
+      font-weight: 800;
+      color: #1a2a1a;
+      margin-bottom: 6px;
+    }
+    .time-badge {
+      display: inline-block;
+      background: #f0f7ec;
+      border: 1px solid #c4d8a8;
+      border-radius: 99px;
+      padding: 2px 10px;
+      font-size: 11px;
+      font-weight: 600;
+      color: #4a6a32;
+      margin-bottom: 12px;
+    }
+    .section-label {
+      font-size: 12px;
+      font-weight: 700;
+      color: #6a7a6a;
+      margin-bottom: 6px;
+      margin-top: 12px;
+    }
+    .course-item {
+      font-size: 13px;
+      color: #3a6abf;
+      margin-bottom: 4px;
+      padding-left: 12px;
+    }
+    .project-box {
+      background: linear-gradient(135deg,#f0f7ec,#e8f4fd);
+      border: 1px solid #d4e8d0;
+      border-radius: 10px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #2a4a2a;
+      margin-top: 10px;
+    }
+    .task-section {
+      margin-top: 32px;
+      page-break-before: auto;
+    }
+    .task-section h2 {
+      font-size: 16px;
+      font-weight: 800;
+      margin-bottom: 12px;
+      color: #1a2a1a;
+    }
+    .task-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 8px 12px;
+      border: 1px solid #e4eae0;
+      border-radius: 10px;
+      margin-bottom: 6px;
+      font-size: 13px;
+    }
+    .task-row.done { color: #9aaa8a; text-decoration: line-through; background:#f8faf6; }
+    .task-row.done .chk { background:#8D9977; border-color:#8D9977; }
+    .chk {
+      width: 16px; height: 16px; border-radius: 4px;
+      border: 2px solid #c0c8b8;
+      display: inline-flex; align-items:center; justify-content:center;
+      flex-shrink:0;
+    }
+    .footer {
+      margin-top: 36px;
+      border-top: 1px solid #e4eae0;
+      padding-top: 14px;
+      font-size: 11px;
+      color: #9aaa8a;
+      display: flex;
+      justify-content: space-between;
+    }
+    @media print {
+      body { background: white; padding: 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="header">
+    <div class="logo">
+      <svg class="logo-gem" viewBox="0 0 24 24">
+        <defs>
+          <linearGradient id="g" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0%" stop-color="#9ac5f4"/>
+            <stop offset="50%" stop-color="#d6c8f7"/>
+            <stop offset="100%" stop-color="#cfe8d5"/>
+          </linearGradient>
+        </defs>
+        <path d="M12 2L15 9L22 12L15 15L12 22L9 15L2 12L9 9Z" fill="url(#g)"/>
+      </svg>
+      <h1>SkillUp</h1>
+    </div>
+    <span class="badge">🎯 ${jobRole}</span>
+  </div>
+
+  <div class="meta">
+    <div class="meta-card"><span>${score}%</span><label>Resume Match Score</label></div>
+    <div class="meta-card"><span>${roadmap.length}</span><label>Skills to Learn</label></div>
+    <div class="meta-card"><span>${completedCount}/${tasks.length}</span><label>Tasks Completed</label></div>
+    <div class="meta-card"><span>${new Date().toLocaleDateString("en-IN", { day:"2-digit", month:"short", year:"numeric" })}</span><label>Generated On</label></div>
+  </div>
+
+  ${roadmap.map((item) => `
+  <div class="skill-block">
+    <div class="skill-title">${item.skill}</div>
+    <span class="time-badge">⏱ ${item.estimated_time}</span>
+    <div class="section-label">📚 Recommended Courses</div>
+    ${item.recommended_courses.map((c) => `
+      <div class="course-item">▸ ${c.title} — <span style="color:#777">${c.url}</span></div>
+    `).join("")}
+    <div class="project-box">
+      <div class="section-label" style="margin-top:0;margin-bottom:4px">Mini Project</div>
+      ${item.mini_project}
+    </div>
+  </div>
+  `).join("")}
+
+  <div class="task-section">
+    <h2>✅ Progress Checklist</h2>
+    ${tasks.map((t) => `
+    <div class="task-row ${t.completed ? "done" : ""}">
+      <div class="chk">${t.completed ? `<svg width="9" height="9" viewBox="0 0 10 10" fill="none"><path d="M2 5l2 2 4-4" stroke="white" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/></svg>` : ""}</div>
+      ${t.label}
+    </div>
+    `).join("")}
+  </div>
+
+  <div class="footer">
+    <span>SkillUp — AI Career Preparation Platform</span>
+    <span>Generated ${new Date().toLocaleString("en-IN")}</span>
+  </div>
+</body>
+</html>`;
+
+  const printWin = window.open("", "_blank", "width=900,height=700");
+  printWin.document.write(html);
+  printWin.document.close();
+  printWin.focus();
+  setTimeout(() => {
+    printWin.print();
+  }, 600);
+}
+
+// ─────────────────────────────────────────────
+// CongratsBoard (unchanged)
+// ─────────────────────────────────────────────
 const CongratsBoard = ({ fading, onStartInterview }) => {
   return (
     <div
@@ -42,12 +276,18 @@ const CongratsBoard = ({ fading, onStartInterview }) => {
   );
 };
 
+// ─────────────────────────────────────────────
+// Main Component
+// ─────────────────────────────────────────────
 const LearningPath = () => {
   const location = useLocation();
   const navigate = useNavigate();
 
   const { result, jobRole } = location.state || {};
   const { missingSkills = [], score: initialScore = 0 } = result || {};
+
+  // ── NEW: support single-skill deep-link from Analysis page ──
+  const focusSkill = location.state?.focusSkill || null;
 
   const [roadmap, setRoadmap] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -61,6 +301,31 @@ const LearningPath = () => {
   const [helperInput, setHelperInput] = useState("");
   const [helperLoading, setHelperLoading] = useState(false);
 
+  // ── NEW: PDF export loading state ──
+  const [pdfLoading, setPdfLoading] = useState(false);
+
+  // ── NEW: toast notification ──
+  const [toast, setToast] = useState(null);
+  const toastRef = useRef(null);
+
+  // ── Guard: confetti fires ONCE — persisted in sessionStorage per role ──
+  const congratsKey = React.useMemo(
+    () => `skillup_congrats_fired_${(jobRole || "default").replace(/\s+/g, "_").toLowerCase()}`,
+    [jobRole]
+  );
+  const congratsFiredRef = useRef(
+    sessionStorage.getItem(congratsKey) === "true"
+  );
+
+  const showToast = (msg, type = "success") => {
+    setToast({ msg, type });
+    clearTimeout(toastRef.current);
+    toastRef.current = setTimeout(() => setToast(null), 3000);
+  };
+
+  // ─────────────────────────────────────────────
+  // Fetch roadmap — then restore or build tasks
+  // ─────────────────────────────────────────────
   useEffect(() => {
     fetch("http://localhost:5000/learning-path", {
       method: "POST",
@@ -71,16 +336,54 @@ const LearningPath = () => {
       .then((data) => {
         const rm = data.roadmap || [];
         setRoadmap(rm);
-        const generated = [];
-        rm.forEach((item) => {
-          generated.push({ label: `${item.skill} – Course`, completed: false });
-          generated.push({ label: `${item.skill} – Mini Project`, completed: false });
-        });
-        setTasks(generated);
+
+        // ── NEW: try to restore saved tasks ──
+        const saved = loadTasks(jobRole);
+        if (saved && saved.length > 0) {
+          // merge saved completion state onto freshly built labels
+          const freshLabels = [];
+          rm.forEach((item) => {
+            freshLabels.push(`${item.skill} – Course`);
+            freshLabels.push(`${item.skill} – Mini Project`);
+          });
+          const merged = freshLabels.map((label) => {
+            const found = saved.find((s) => s.label === label);
+            return { label, completed: found ? found.completed : false };
+          });
+          setTasks(merged);
+        } else {
+          const generated = [];
+          rm.forEach((item) => {
+            generated.push({ label: `${item.skill} – Course`, completed: false });
+            generated.push({ label: `${item.skill} – Mini Project`, completed: false });
+          });
+          setTasks(generated);
+        }
         setLoading(false);
       })
       .catch(() => setLoading(false));
-  }, [missingSkills]);
+  }, [missingSkills, jobRole]);
+
+  // ─────────────────────────────────────────────
+  // NEW: persist tasks to localStorage on every change
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    if (tasks.length > 0) {
+      saveTasks(jobRole, tasks);
+    }
+  }, [tasks, jobRole]);
+
+  // ─────────────────────────────────────────────
+  // NEW: scroll to focused skill card if deep-linked
+  // ─────────────────────────────────────────────
+  useEffect(() => {
+    if (focusSkill && !loading) {
+      setTimeout(() => {
+        const el = document.getElementById(`skill-card-${focusSkill.replace(/\s+/g, "-").toLowerCase()}`);
+        if (el) el.scrollIntoView({ behavior: "smooth", block: "center" });
+      }, 400);
+    }
+  }, [focusSkill, loading]);
 
   const toggleTask = (index) => {
     const updated = [...tasks];
@@ -111,6 +414,16 @@ const LearningPath = () => {
     }
   };
 
+  // ── NEW: PDF export handler ──
+  const handleExportPDF = () => {
+    setPdfLoading(true);
+    setTimeout(() => {
+      exportLearningPathPDF({ jobRole, roadmap, tasks, score: updatedScore });
+      setPdfLoading(false);
+      showToast("PDF opened in new tab — use Print → Save as PDF", "success");
+    }, 200);
+  };
+
   const completedCount = tasks.filter((t) => t.completed).length;
   const totalTasks = tasks.length;
 
@@ -125,14 +438,16 @@ const LearningPath = () => {
   const updatedScore = progressPercent;
 
   useEffect(() => {
-    if (updatedScore === 100) {
+    if (updatedScore === 100 && !congratsFiredRef.current) {
+      congratsFiredRef.current = true;
+      sessionStorage.setItem(congratsKey, "true");
       setShowCongrats(true);
       setRunConfetti(true);
       setTimeout(() => setFadeCongrats(true), 6000);
       setTimeout(() => setShowCongrats(false), 7500);
       setTimeout(() => setRunConfetti(false), 18000);
     }
-  }, [updatedScore]);
+  }, [updatedScore, congratsKey]);
 
   const status = (() => {
     if (updatedScore >= 100) return { title: "🎉 Congratulations!", message: "You are 100% interview ready!", badge: "🏆 Fully Interview Ready" };
@@ -174,6 +489,14 @@ const LearningPath = () => {
           0%   { background-position: -400px 0; }
           100% { background-position:  400px 0; }
         }
+        @keyframes toastIn {
+          from { opacity:0; transform:translateY(12px) scale(0.96); }
+          to   { opacity:1; transform:translateY(0) scale(1); }
+        }
+        @keyframes toastOut {
+          from { opacity:1; transform:translateY(0) scale(1); }
+          to   { opacity:0; transform:translateY(8px) scale(0.96); }
+        }
 
         .orb-a { animation: floatA 7s ease-in-out infinite; }
         .orb-b { animation: floatB 9s ease-in-out 1.5s infinite; }
@@ -185,6 +508,10 @@ const LearningPath = () => {
         .roadmap-card:hover {
           transform: translateY(-3px);
           box-shadow: 0 16px 40px rgba(0,0,0,0.10) !important;
+        }
+        .roadmap-card.focused-skill {
+          border-color: #4a8fa8 !important;
+          box-shadow: 0 0 0 3px rgba(74,143,168,0.18), 0 16px 40px rgba(0,0,0,0.10) !important;
         }
 
         .task-row {
@@ -212,13 +539,8 @@ const LearningPath = () => {
           transform: translateY(-1px);
         }
 
-        .page-title {
-          color: #1a2a1a;
-        }
-
-        .score-num {
-          color: #4a8fa8;
-        }
+        .page-title { color: #1a2a1a; }
+        .score-num  { color: #4a8fa8; }
 
         .progress-bar {
           background: linear-gradient(90deg, #8D9977, #9ac5f4, #d6c8f7);
@@ -239,6 +561,60 @@ const LearningPath = () => {
         .content-scroll::-webkit-scrollbar { width: 5px; }
         .content-scroll::-webkit-scrollbar-track { background: transparent; }
         .content-scroll::-webkit-scrollbar-thumb { background: #d0d8c8; border-radius: 99px; }
+
+        /* ── NEW: PDF export button ── */
+        .pdf-btn {
+          display: inline-flex; align-items: center; gap: 7px;
+          padding: 8px 18px; border-radius: 10px; border: 1.5px solid #c4d8a8;
+          background: rgba(255,255,255,0.85); color: #4a6a3a;
+          font-weight: 700; font-size: 13px; cursor: pointer;
+          transition: all 0.2s ease;
+        }
+        .pdf-btn:hover:not(:disabled) {
+          background: #f0f7ec; border-color: #8D9977;
+          transform: translateY(-1px);
+          box-shadow: 0 4px 14px rgba(141,153,119,0.25);
+        }
+        .pdf-btn:disabled { opacity:0.65; cursor:not-allowed; }
+
+        /* ── NEW: Reset progress button ── */
+        .reset-btn {
+          display: inline-flex; align-items: center; gap: 5px;
+          padding: 5px 12px; border-radius: 8px; border: 1px solid #e4d8c8;
+          background: transparent; color: #aa7a5a;
+          font-size: 11px; font-weight: 600; cursor: pointer;
+          transition: all 0.18s ease;
+        }
+        .reset-btn:hover {
+          background: #fdf6ec; border-color: #c4882a; color: #c4882a;
+        }
+
+        /* ── NEW: Toast ── */
+        .skillup-toast {
+          position: fixed; bottom: 28px; left: 50%; transform: translateX(-50%);
+          z-index: 99999;
+          background: rgba(255,255,255,0.97);
+          border: 1px solid #B7C7A1;
+          border-radius: 12px;
+          padding: 11px 22px;
+          font-size: 13px; font-weight: 600; color: #2a4a2a;
+          box-shadow: 0 8px 28px rgba(0,0,0,0.12);
+          animation: toastIn 0.3s cubic-bezier(0.16,1,0.3,1) both;
+          white-space: nowrap;
+          pointer-events: none;
+        }
+
+        /* ── NEW: saved indicator dot ── */
+        @keyframes savedPulse {
+          0%,100% { opacity:1; }
+          50%      { opacity:0.4; }
+        }
+        .saved-dot {
+          width: 7px; height: 7px; border-radius: 50%;
+          background: #8D9977;
+          display: inline-block;
+          animation: savedPulse 2.5s ease-in-out infinite;
+        }
       `}</style>
 
       {/* ── Background orbs ── */}
@@ -277,7 +653,7 @@ const LearningPath = () => {
             </div>
           </div>
 
-          <div className="flex gap-3">
+          <div className="flex gap-3 items-center">
             <button
               onClick={() => navigate(`/hiring-calendar?role=${jobRole}`)}
               className="nav-btn px-4 py-2 bg-[#8D9977] text-white rounded-lg text-sm font-semibold shadow-sm"
@@ -314,7 +690,14 @@ const LearningPath = () => {
             sidebarOpen ? "w-[360px] p-6 overflow-y-auto" : "w-0 p-0 overflow-hidden border-r-0"
           }`}
         >
-          <h3 className="text-lg font-bold mb-4 text-gray-800">📊 Progress Dashboard</h3>
+          {/* ── NEW: auto-save indicator ── */}
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-lg font-bold text-gray-800">📊 Progress Dashboard</h3>
+            <div style={{ display:"flex", alignItems:"center", gap:5, fontSize:10, color:"#9aaa8a", fontWeight:600 }}>
+              <span className="saved-dot" />
+              Auto-saved
+            </div>
+          </div>
 
           <p className="text-xs text-gray-400 font-semibold uppercase tracking-wider mb-1">Resume Score</p>
           <p className="text-4xl font-bold score-num mb-4">{updatedScore}%</p>
@@ -326,9 +709,24 @@ const LearningPath = () => {
               style={{ width: `${progressPercent}%` }}
             />
           </div>
-          <p className="text-xs text-gray-400 mb-5">
+          <p className="text-xs text-gray-400 mb-2">
             {completedCount} of {totalTasks} tasks completed
           </p>
+
+          {/* ── NEW: reset progress button ── */}
+          <button
+            className="reset-btn mb-4"
+            onClick={() => {
+              const reset = tasks.map((t) => ({ ...t, completed: false }));
+              setTasks(reset);
+              // Clear the congrats flag so they can earn it again
+              congratsFiredRef.current = false;
+              sessionStorage.removeItem(congratsKey);
+              showToast("Progress reset", "info");
+            }}
+          >
+            ↺ Reset Progress
+          </button>
 
           {/* Status card */}
           <div
@@ -380,9 +778,21 @@ const LearningPath = () => {
         {/* ── CONTENT ── */}
         <div className="flex-1 px-10 py-8 overflow-y-auto content-scroll transition-all duration-300">
 
-          <h2 className="text-3xl font-extrabold mb-2 page-title">
-            Your Personalized Learning Path
-          </h2>
+          <div className="flex items-start justify-between mb-2 flex-wrap gap-3">
+            <h2 className="text-3xl font-extrabold page-title">
+              Your Personalized Learning Path
+            </h2>
+            {/* ── NEW: inline export button (also shows on main content) ── */}
+            <button
+              onClick={handleExportPDF}
+              disabled={pdfLoading || loading || roadmap.length === 0}
+              className="pdf-btn"
+              style={{ marginTop:4 }}
+            >
+              {pdfLoading ? "Generating..." : "Export as PDF"}
+            </button>
+          </div>
+
           {jobRole && (
             <p className="text-sm text-gray-400 mb-7 font-medium">
               Tailored for{" "}
@@ -393,6 +803,16 @@ const LearningPath = () => {
               }}>
                 🎯 {jobRole}
               </span>
+              {/* ── NEW: show focus indicator if deep-linked from Analysis ── */}
+              {focusSkill && (
+                <span style={{
+                  marginLeft: 8, background: "#f0f5ff", border: "1px solid #a8c0f0",
+                  borderRadius: 99, padding: "2px 10px",
+                  fontSize: 12, fontWeight: 600, color: "#2a4a8a",
+                }}>
+                  🔍 Focused: {focusSkill}
+                </span>
+              )}
             </p>
           )}
 
@@ -406,57 +826,68 @@ const LearningPath = () => {
             </div>
           )}
 
-          {!loading && roadmap.map((item, idx) => (
-            <div
-              key={idx}
-              className="roadmap-card bg-white/90 backdrop-blur-sm p-6 rounded-2xl border border-gray-100 shadow-md mb-5"
-              style={{ animationDelay: `${idx * 0.07}s` }}
-            >
-              {/* Card header */}
-              <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
-                <h3 className="text-xl font-bold text-gray-900">{item.skill}</h3>
-                <span style={{
-                  fontSize: 11, fontWeight: 600, color: "#5a7a4a",
-                  background: "#f0f7ec", border: "1px solid #c4d8a8",
-                  borderRadius: 99, padding: "3px 10px",
-                }}>
-                  ⏱ {item.estimated_time}
-                </span>
-              </div>
-
-              {/* Divider */}
-              <div style={{ height: 1, background: "linear-gradient(90deg,transparent,#e8eee4,transparent)", margin: "12px 0" }} />
-
-              {/* Courses */}
-              <div className="mb-4">
-                <p className="text-sm font-semibold text-gray-700 mb-2">📚 Recommended Courses</p>
-                <ul className="space-y-1 ml-1">
-                  {item.recommended_courses.map((course, i) => (
-                    <li key={i} className="flex items-start gap-2">
-                      <span style={{ color: "#8D9977", marginTop: 2, fontSize: 12 }}>▸</span>
-                      <a
-                        href={course.url}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="course-link text-sm text-blue-600 underline-offset-2 hover:text-blue-800"
-                      >
-                        {course.title}
-                      </a>
-                    </li>
-                  ))}
-                </ul>
-              </div>
-
-              {/* Mini project */}
+          {!loading && roadmap.map((item, idx) => {
+            const isFocused = focusSkill && focusSkill.toLowerCase() === item.skill.toLowerCase();
+            return (
               <div
-                className="rounded-xl p-4"
-                style={{ background: "linear-gradient(135deg,#f0f7ec,#e8f4fd)", border: "1px solid #d4e8d0" }}
+                key={idx}
+                id={`skill-card-${item.skill.replace(/\s+/g, "-").toLowerCase()}`}
+                className={`roadmap-card bg-white/90 backdrop-blur-sm p-6 rounded-2xl border border-gray-100 shadow-md mb-5 ${isFocused ? "focused-skill" : ""}`}
+                style={{ animationDelay: `${idx * 0.07}s` }}
               >
-                <p className="text-sm font-semibold text-gray-700 mb-1">🛠 Mini Project</p>
-                <p className="text-sm text-gray-600 leading-relaxed">{item.mini_project}</p>
+                {/* Card header */}
+                <div className="flex items-center justify-between mb-1 flex-wrap gap-2">
+                  <div className="flex items-center gap-2">
+                    <h3 className="text-xl font-bold text-gray-900">{item.skill}</h3>
+                    {isFocused && (
+                      <span style={{ fontSize:10, fontWeight:700, color:"#2a4a8a", background:"#f0f5ff", border:"1px solid #a8c0f0", borderRadius:99, padding:"2px 8px" }}>
+                        📍 From Analysis
+                      </span>
+                    )}
+                  </div>
+                  <span style={{
+                    fontSize: 11, fontWeight: 600, color: "#5a7a4a",
+                    background: "#f0f7ec", border: "1px solid #c4d8a8",
+                    borderRadius: 99, padding: "3px 10px",
+                  }}>
+                    ⏱ {item.estimated_time}
+                  </span>
+                </div>
+
+                {/* Divider */}
+                <div style={{ height: 1, background: "linear-gradient(90deg,transparent,#e8eee4,transparent)", margin: "12px 0" }} />
+
+                {/* Courses */}
+                <div className="mb-4">
+                  <p className="text-sm font-semibold text-gray-700 mb-2">📚 Recommended Courses</p>
+                  <ul className="space-y-1 ml-1">
+                    {item.recommended_courses.map((course, i) => (
+                      <li key={i} className="flex items-start gap-2">
+                        <span style={{ color: "#8D9977", marginTop: 2, fontSize: 12 }}>▸</span>
+                        <a
+                          href={course.url}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="course-link text-sm text-blue-600 underline-offset-2 hover:text-blue-800"
+                        >
+                          {course.title}
+                        </a>
+                      </li>
+                    ))}
+                  </ul>
+                </div>
+
+                {/* Mini project */}
+                <div
+                  className="rounded-xl p-4"
+                  style={{ background: "linear-gradient(135deg,#f0f7ec,#e8f4fd)", border: "1px solid #d4e8d0" }}
+                >
+                  <p className="text-sm font-semibold text-gray-700 mb-1">Mini Project</p>
+                  <p className="text-sm text-gray-600 leading-relaxed">{item.mini_project}</p>
+                </div>
               </div>
-            </div>
-          ))}
+            );
+          })}
         </div>
       </div>
 
@@ -541,6 +972,13 @@ const LearningPath = () => {
               Send
             </button>
           </div>
+        </div>
+      )}
+
+      {/* ── NEW: Toast notification ── */}
+      {toast && (
+        <div className="skillup-toast">
+          {toast.type === "success" ? "✅" : "ℹ️"} {toast.msg}
         </div>
       )}
     </div>
